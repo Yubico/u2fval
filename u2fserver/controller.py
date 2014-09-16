@@ -14,7 +14,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from u2fserver.model import Client, User, Device
-from u2flib_server.jsapi import RegisterResponse, SignResponse
 from u2flib_server.u2f_v2 import U2FEnrollment, U2FBinding, U2FChallenge
 from u2flib_server.utils import rand_bytes
 
@@ -46,17 +45,27 @@ class U2FController(object):
             self._session.delete(user)
 
     def register_start(self, uuid):
+        # RegisterRequest
         enroll = U2FEnrollment(self._client.app_id, self._client.valid_facets)
         enroll_data = enroll.data
         self._memstore.put(enroll.challenge, {
             'uuid': uuid,
             'request': enroll.serialize()
         })
-        #TODO: Return SignRequest[], RegisterRequest[]
-        return enroll_data
 
-    def register_complete(self, registration_resp):
-        resp = RegisterResponse(registration_resp)
+        # SignRequest[]
+        sign_requests = []
+        user = self._get_user(uuid)
+        if user:
+            for dev in user.devices.values():
+                binding = U2FBinding.deserialize(dev.bind_data)
+                challenge = binding.make_challenge('check-only')
+                sign_requests.append(challenge.data)
+
+        # To support multiple versions, add more RegisterRequests.
+        return [enroll_data], sign_requests
+
+    def register_complete(self, resp):
         memkey = resp.clientData.challenge
         data = self._memstore.get(memkey)
         uuid = data['uuid']
@@ -83,7 +92,7 @@ class U2FController(object):
             return []
         return [d.get_descriptor(filter) for d in user.devices.values()]
 
-    def authenticate_start(self, uuid):
+    def authenticate_start(self, uuid, invalidate=False):
         user = self._get_user(uuid)
         sign_requests = []
         challenges = {}
@@ -102,8 +111,7 @@ class U2FController(object):
         })
         return sign_requests
 
-    def authenticate_complete(self, authentication_resp):
-        resp = SignResponse(authentication_resp)
+    def authenticate_complete(self, resp):
         memkey = resp.clientData.challenge
         stored = self._memstore.get(memkey)
         user = self._get_user(stored['uuid'])

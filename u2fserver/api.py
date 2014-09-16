@@ -14,6 +14,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from u2fserver.controller import U2FController
+from u2fserver.jsobjects import (RegisterRequestData, RegisterResponseData,
+                                 AuthenticateRequestData,
+                                 AuthenticateResponseData)
 from webob.dec import wsgify
 from webob import exc, Response
 import json
@@ -72,29 +75,31 @@ class U2FServerApplication(object):
 
     def register(self, request, controller, uuid):
         if request.method == 'GET':
-            return controller.register_start(uuid)
+            register_requests, sign_requests = controller.register_start(uuid)
+            return RegisterRequestData(
+                registerRequests=register_requests,
+                authenticateRequests=sign_requests
+            )
         elif request.method == 'POST':
-            result = json.loads(request.body)
-            u2f_response = result['registerResponse']
-            handle = controller.register_complete(u2f_response)
-            get_props = result.get('getProps', [])
-            set_props = result.get('setProps', {})
-            controller.set_props(handle, set_props)
-            return controller.get_descriptor(handle, get_props)
+            data = RegisterResponseData(request.body)
+            handle = controller.register_complete(data.registerResponse)
+            controller.set_props(handle, data.setProps)
+            return controller.get_descriptor(handle, data.getProps)
         else:
             raise exc.HTTPMethodNotAllowed
 
     def authenticate(self, request, controller, uuid):
         if request.method == 'GET':
-            return controller.authenticate_start(uuid)
+            sign_requests = controller.authenticate_start(uuid)
+            return AuthenticateRequestData(
+                authenticateRequests=sign_requests
+            )
         elif request.method == 'POST':
-            result = json.loads(request.body)
-            u2f_response = result['authenticateResponse']
-            handle = controller.authenticate_complete(u2f_response)
-            get_props = result.get('getProps', [])
-            set_props = result.get('setProps', {})
-            controller.set_props(handle, set_props)
-            return controller.get_descriptor(handle, get_props)
+            data = AuthenticateResponseData(request.body)
+            handle = controller.authenticate_complete(
+                data.authenticateResponse)
+            controller.set_props(handle, data.setProps)
+            return controller.get_descriptor(handle, data.getProps)
         else:
             raise exc.HTTPMethodNotAllowed
 
