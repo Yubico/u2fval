@@ -13,7 +13,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from sqlalchemy import (Column, Integer, String, Text, ForeignKey, Sequence)
+from sqlalchemy import (Column, Integer, String, Text, ForeignKey, Sequence,
+                        DateTime)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -21,6 +22,7 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from uuid import uuid4
 import json
+import datetime
 
 
 Base = declarative_base()
@@ -62,6 +64,12 @@ class User(Base):
         collection_class=attribute_mapped_collection('handle'),
         cascade='all, delete-orphan'
     )
+    transactions = relationship(
+        'Transaction',
+        backref='user',
+        order_by='Transaction.created_at.desc()',
+        lazy='dynamic',
+        cascade='all, delete-orphan')
 
     def __init__(self, uuid):
         self.uuid = uuid
@@ -118,6 +126,30 @@ class Property(Base):
     def __init__(self, key, value):
         self.key = key
         self.value = value
+
+
+# Used for storing transactions in the DB instead of memcached
+# See transactiondb.py for more details.
+class Transaction(Base):
+    __tablename__ = 'transactions'
+
+    id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    transaction_id = Column(String(64), nullable=False, unique=True)
+    _data = Column(Text())
+    created_at = Column(DateTime, default=datetime.datetime.now)
+
+    def __init__(self, transaction_id, data):
+        self.transaction_id = transaction_id
+        self.data = data
+
+    @hybrid_property
+    def data(self):
+        return json.loads(self._data)
+
+    @data.setter
+    def data(self, value):
+        self._data = json.dumps(value)
 
 
 if __name__ == '__main__':

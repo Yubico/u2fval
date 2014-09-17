@@ -36,7 +36,6 @@ setup(
     maintainer='Yubico Open Source Maintainers',
     maintainer_email='ossmaint@yubico.com',
     url='https://github.com/Yubico/u2fserver',
-    license='proprietary',
     packages=['u2fserver'],
     setup_requires=['nose>=1.0'],
     install_requires=['python-u2flib-server', 'SQLAlchemy', 'python-memcached',

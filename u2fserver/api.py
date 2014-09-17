@@ -127,7 +127,8 @@ class U2FServerApplication(object):
 if __name__ == '__main__':
     from u2fserver.model import Base, Client
     from wsgiref.simple_server import make_server
-    from u2fserver.memstore import MemcachedStore
+    from u2fserver.transactionmc import MemcachedStore
+    from u2fserver.transactiondb import DBStore
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -142,8 +143,10 @@ if __name__ == '__main__':
                        ['http://demo.yubico.com']))
     session.commit()
 
-    application = U2FServerApplication(session,
-                                       MemcachedStore('127.0.0.1:11211'))
+    #memstore = MemcachedStore('127.0.0.1:11211')
+    memstore = DBStore(session)
+
+    application = U2FServerApplication(session, memstore)
 
     httpd = make_server('0.0.0.0', 4711, application)
     httpd.serve_forever()
