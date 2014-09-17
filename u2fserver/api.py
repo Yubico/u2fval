@@ -51,7 +51,7 @@ class U2FServerApplication(object):
         if not uuid:
             raise exc.HTTPNotFound
         controller = U2FController(self._session, self._memstore, client_id)
-        return self.user(request, controller, uuid)
+        return self.user(request, controller, uuid.encode('utf-8'))
 
 
     def user(self, request, controller, uuid):
@@ -82,7 +82,10 @@ class U2FServerApplication(object):
             )
         elif request.method == 'POST':
             data = RegisterResponseData(request.body)
-            handle = controller.register_complete(data.registerResponse)
+            try:
+                handle = controller.register_complete(uuid, data.registerResponse)
+            except KeyError:
+                raise exc.HTTPBadRequest
             controller.set_props(handle, data.setProps)
             return controller.get_descriptor(handle, data.getProps)
         else:
@@ -96,8 +99,11 @@ class U2FServerApplication(object):
             )
         elif request.method == 'POST':
             data = AuthenticateResponseData(request.body)
-            handle = controller.authenticate_complete(
-                data.authenticateResponse)
+            try:
+                handle = controller.authenticate_complete(
+                    uuid, data.authenticateResponse)
+            except KeyError:
+                raise exc.HTTPBadRequest
             controller.set_props(handle, data.setProps)
             return controller.get_descriptor(handle, data.getProps)
         else:
@@ -121,7 +127,7 @@ class U2FServerApplication(object):
 if __name__ == '__main__':
     from u2fserver.model import Base, Client
     from wsgiref.simple_server import make_server
-    from u2fserver.memstore import MemStore
+    from u2fserver.memstore import MemcachedStore
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -136,7 +142,8 @@ if __name__ == '__main__':
                        ['http://demo.yubico.com']))
     session.commit()
 
-    application = U2FServerApplication(session, MemStore())
+    application = U2FServerApplication(session,
+                                       MemcachedStore('127.0.0.1:11211'))
 
     httpd = make_server('0.0.0.0', 4711, application)
     httpd.serve_forever()

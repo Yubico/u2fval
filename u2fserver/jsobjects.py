@@ -28,7 +28,7 @@ class WithProps(object):
 
     @property
     def getProps(self):
-        return self.get('getProps', [])
+        return self.get('getProps', None)
 
     @property
     def setProps(self):
