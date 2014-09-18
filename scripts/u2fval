@@ -17,6 +17,7 @@
 
 from u2fserver.model import Client
 import os
+import sys
 import argparse
 
 
@@ -30,13 +31,39 @@ def run_parser(parser):
 
 def client_parser(parser):
     client_subparsers = parser.add_subparsers(dest='action', help='subcommand')
+
+    list_parser = client_subparsers.add_parser('list',
+                                               help='list available clients')
+
     create_parser = client_subparsers.add_parser('create',
                                                  help='create a client')
-    create_parser.add_argument('name', help='the name of the client')
+    create_parser.add_argument('name', metavar='<name>',
+                               help='the name of the client')
+    create_parser.add_argument('-a', '--appId', required=True,
+                               help='sets the appId')
+    create_parser.add_argument('-f', '--facets', required=True, nargs='+',
+                               metavar='FACET',
+                               help='all valid facets for the client')
+
+    show_parser = client_subparsers.add_parser('show',
+                                               help='display a client')
+    show_parser.add_argument('name', metavar='<name>',
+                             help='the name of the client')
+
+    update_parser = client_subparsers.add_parser('update',
+                                                 help='update data for a '
+                                                 'client')
+    update_parser.add_argument('name', metavar='<name>',
+                               help='the name of the client')
+    update_parser.add_argument('-a', '--appId',
+                               help='sets the appId')
+    update_parser.add_argument('-f', '--facets', nargs='+', metavar='FACET',
+                               help='all valid facets for the client')
 
     delete_parser = client_subparsers.add_parser('delete',
                                                  help='delete a client')
-    delete_parser.add_argument('name', help='the name of the client')
+    delete_parser.add_argument('name', metavar='<name>',
+                               help='the name of the client')
 
 
 def db_parser(parser):
@@ -50,6 +77,8 @@ def arg_parser():
     )
     parser.add_argument('-c', '--config', help='specify an alternate '
                         'configuration file to use')
+    parser.add_argument('-d', '--debug', action='store_true', dest='debug',
+                        help='prints debug information to stdout')
     subparsers = parser.add_subparsers(dest='command',
                                        help='available commands')
 
@@ -61,11 +90,42 @@ def arg_parser():
 
 
 def handle_client(settings, args):
-    print "handle_client"
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from u2fserver.client.controller import ClientController
+    engine = create_engine(settings['db'], echo=args.debug)
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    controller = ClientController(session)
+
+    cmd = args.action
+    if cmd == 'list':
+        for client in controller.list_clients():
+            print client
+    else:
+        try:
+            if cmd == 'create':
+                controller.create_client(args.name, args.appId, args.facets)
+                print 'Created client: %s' % args.name
+            elif cmd == 'show':
+                print controller.get_client(args.name)
+            elif cmd == 'update':
+                controller.update_client(args.name, args.appId, args.facets)
+                print 'Updated client: %s' % args.name
+            elif cmd == 'delete':
+                controller.delete_client(args.name)
+                print 'Deleted client: %s' % args.name
+            session.commit()
+        except Exception as e:
+            print e
+            if args.debug:
+                raise e
+            sys.exit(1)
 
 
 def handle_run(settings, args):
-    from u2fserver.core.server import create_application
+    from u2fserver.core.api import create_application
     from wsgiref.simple_server import make_server
 
     application = create_application(settings)
@@ -80,7 +140,7 @@ def handle_db(settings, args):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
-    engine = create_engine(settings['db'], echo=True)
+    engine = create_engine(settings['db'], echo=args.debug)
     Base.metadata.create_all(engine)
     print "Database intialized!"
 

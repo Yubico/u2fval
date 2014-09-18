@@ -32,10 +32,12 @@ class Client(Base):
     __tablename__ = 'clients'
 
     id = Column(Integer, Sequence('client_id_seq'), primary_key=True)
+    name = Column(String(32), nullable=False, unique=True)
     app_id = Column(String(256), nullable=False)
     _valid_facets = Column('valid_facets', Text(), default='[]')
 
-    def __init__(self, app_id, facets):
+    def __init__(self, name, app_id, facets):
+        self.name = name
         self.app_id = app_id
         self.valid_facets = facets
 

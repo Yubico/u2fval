@@ -22,6 +22,9 @@ from webob import exc, Response
 import json
 
 
+__all__ = ['create_application']
+
+
 class U2FServerApplication(object):
 
     def __init__(self, session, memstore):
@@ -122,6 +125,22 @@ class U2FServerApplication(object):
             return exc.HTTPNoContent()
         else:
             raise exc.HTTPMethodNotAllowed
+
+
+def create_application(settings):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    engine = create_engine(settings['db'], echo=True)
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    if settings['mc']:
+        memstore = MemcachedStore(settings['mc_hosts'])
+    else:
+        memstore = DBStore(session)
+
+    return U2FServerApplication(session, memstore)
 
 
 if __name__ == '__main__':
