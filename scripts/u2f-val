@@ -15,7 +15,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from u2fserver.model import Client
+from u2fval.model import Client
 import os
 import sys
 import argparse
@@ -92,7 +92,7 @@ def arg_parser():
 def handle_client(settings, args):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from u2fserver.client.controller import ClientController
+    from u2fval.client.controller import ClientController
     engine = create_engine(settings['db'], echo=args.debug)
 
     Session = sessionmaker(bind=engine)
@@ -130,7 +130,7 @@ def handle_client(settings, args):
 
 
 def handle_run(settings, args):
-    from u2fserver.core.api import create_application
+    from u2fval.core.api import create_application
     from wsgiref.simple_server import make_server
 
     application = create_application(settings)
@@ -141,7 +141,7 @@ def handle_run(settings, args):
 
 def handle_db(settings, args):
     print "handle_db"
-    from u2fserver.model import Base
+    from u2fval.model import Base
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -165,7 +165,7 @@ def main():
 
     if args.config:
         os.environ['U2FVAL_SETTINGS'] = args.config
-    from u2fserver.config import settings
+    from u2fval.config import settings
 
     handle_args(settings, args)
 

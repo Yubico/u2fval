@@ -13,8 +13,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from u2fserver.core.controller import U2FController
-from u2fserver.core.jsobjects import (
+from u2fval.core.controller import U2FController
+from u2fval.core.jsobjects import (
     RegisterRequestData, RegisterResponseData, AuthenticateRequestData,
     AuthenticateResponseData)
 from webob.dec import wsgify
@@ -139,10 +139,10 @@ def create_application(settings):
     session = Session()
 
     if settings['mc']:
-        from u2fserver.core.transactionmc import MemcachedStore
+        from u2fval.core.transactionmc import MemcachedStore
         memstore = MemcachedStore(settings['mc_hosts'])
     else:
-        from u2fserver.core.transactiondb import DBStore
+        from u2fval.core.transactiondb import DBStore
         memstore = DBStore(session)
 
     return U2FServerApplication(session, memstore)

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #    Copyright (C) 2014  Yubico AB
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -14,17 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Command line executable for u2fserver which allows running the server
-standalone, administering Clients, and setting up the database tables.
-"""
-from u2fserver.config import settings
-from u2fserver.model import Client
+from u2fval.config import settings
+from u2fval.core.api import create_application
 
-
-def main():
-    print "Settings:", settings
-
-
-if __name__ == '__main__':
-    main()
+application = create_application(settings)

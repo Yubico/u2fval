@@ -14,7 +14,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from u2fserver.model import Client
+from u2fval.model import Client
 from sqlalchemy.orm import exc
 import re
 

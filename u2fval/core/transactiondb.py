@@ -14,7 +14,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from u2fserver.model import User, Transaction
+from u2fval.model import User, Transaction
 from datetime import datetime, timedelta
 
 

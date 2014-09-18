@@ -21,22 +21,22 @@ VERSION_PATTERN = re.compile(r"(?m)^__version__\s*=\s*['\"](.+)['\"]$")
 
 
 def get_version():
-    """Return the current version as defined by u2fserver/__init__.py."""
+    """Return the current version as defined by u2fval/__init__.py."""
 
-    with open('u2fserver/__init__.py', 'r') as f:
+    with open('u2fval/__init__.py', 'r') as f:
         match = VERSION_PATTERN.search(f.read())
         return match.group(1)
 
 
 setup(
-    name='u2fserver',
+    name='u2fval',
     version=get_version(),
     author='Dain Nilsson',
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
     maintainer_email='ossmaint@yubico.com',
-    url='https://github.com/Yubico/u2fserver',
-    packages=['u2fserver', 'u2fserver.core', 'u2fserver.client'],
+    url='https://github.com/Yubico/u2fval',
+    packages=['u2fval', 'u2fval.core', 'u2fval.client'],
     setup_requires=['nose>=1.0'],
     data_files=[('/etc/yubico/u2f-val', ['conf/logging.conf'])],
     install_requires=['python-u2flib-server', 'SQLAlchemy', 'python-memcached',

@@ -17,7 +17,7 @@ import sys
 import imp
 import errno
 import os
-from u2fserver import default_settings
+from u2fval import default_settings
 import logging
 import logging.config
 

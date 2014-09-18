@@ -1,0 +1,6 @@
+include COPYING
+include NEWS
+include ChangeLog
+include release.py
+include conf/*
+recursive-include u2fval *.wsgi

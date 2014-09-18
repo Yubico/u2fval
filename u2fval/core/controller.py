@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from u2fserver.model import Client, User, Device
+from u2fval.model import Client, User, Device
 from u2flib_server.u2f_v2 import U2FEnrollment, U2FBinding, U2FChallenge
 from u2flib_server.utils import rand_bytes
 
