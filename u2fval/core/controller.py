@@ -50,7 +50,6 @@ class U2FController(object):
         enroll = U2FEnrollment(self._client.app_id, self._client.valid_facets)
         enroll_data = enroll.data
         self._memstore.store(uuid, enroll.challenge, {
-            'uuid': uuid,
             'request': enroll.serialize()
         })
 
@@ -69,7 +68,6 @@ class U2FController(object):
     def register_complete(self, uuid, resp):
         memkey = resp.clientData.challenge
         data = self._memstore.retrieve(uuid, memkey)
-        uuid = data['uuid']
         u2f_enroll = U2FEnrollment.deserialize(data['request'])
         bind = u2f_enroll.bind(resp)
         user = self._get_or_create_user(uuid)
@@ -109,7 +107,6 @@ class U2FController(object):
                 'challenge': challenge.serialize()
             }
         self._memstore.store(uuid, rand, {
-            'uuid': uuid,
             'challenges': challenges
         })
         return sign_requests
@@ -117,7 +114,7 @@ class U2FController(object):
     def authenticate_complete(self, uuid, resp):
         memkey = resp.clientData.challenge
         stored = self._memstore.retrieve(uuid, memkey)
-        user = self._get_user(stored['uuid'])
+        user = self._get_user(uuid)
         for handle, data in stored['challenges'].items():
             if data['keyHandle'] == resp.keyHandle:
                 dev = user.devices[handle]

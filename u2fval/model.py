@@ -113,7 +113,7 @@ class Device(Base):
         if filter is None:
             data['properties'] = dict(self.properties)
         else:
-            data['properties'] = {k:self.properties.get(k) for k in filter}
+            data['properties'] = {k: self.properties.get(k) for k in filter}
         return data
 
 
@@ -152,23 +152,3 @@ class Transaction(Base):
     @data.setter
     def data(self, value):
         self._data = json.dumps(value)
-
-
-if __name__ == '__main__':
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
-    engine = create_engine('sqlite:///:memory:', echo=True)
-    Base.metadata.create_all(engine)
-
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    user = User("test-user")
-    device = user.add_device('data', {'createdAt': 'unknown'})
-
-    session.add(user)
-    session.commit()
-
-    user = session.query(User).first()
-    print user.devices[0].properties['createdAt']
