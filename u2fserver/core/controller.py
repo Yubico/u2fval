@@ -73,7 +73,9 @@ class U2FController(object):
         u2f_enroll = U2FEnrollment.deserialize(data['request'])
         bind = u2f_enroll.bind(resp)
         user = self._get_or_create_user(uuid)
-        return user.add_device(bind.serialize()).handle
+        dev = user.add_device(bind.serialize())
+        # TODO: Save registration time property.
+        return dev.handle
 
     def unregister(self, handle):
         dev = self._get_device(handle)
@@ -123,6 +125,7 @@ class U2FController(object):
                 challenge = U2FChallenge.deserialize(binding,
                                                      data['challenge'])
                 challenge.validate(resp)
+                # TODO: Update last authentication for device.
                 return handle
         else:
             raise ValueError('No device found for keyHandle: %s' %

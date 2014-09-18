@@ -133,44 +133,16 @@ class U2FServerApplication(object):
 def create_application(settings):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from u2fserver.core.transactionmc import MemcachedStore
-    from u2fserver.core.transactiondb import DBStore
     engine = create_engine(settings['db'], echo=True)
 
     Session = sessionmaker(bind=engine)
     session = Session()
 
     if settings['mc']:
+        from u2fserver.core.transactionmc import MemcachedStore
         memstore = MemcachedStore(settings['mc_hosts'])
     else:
+        from u2fserver.core.transactiondb import DBStore
         memstore = DBStore(session)
 
     return U2FServerApplication(session, memstore)
-
-
-if __name__ == '__main__':
-    from u2fserver.model import Base, Client
-    from wsgiref.simple_server import make_server
-    from u2fserver.core.transactionmc import MemcachedStore
-    from u2fserver.core.transactiondb import DBStore
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
-    engine = create_engine('sqlite:///:memory:', echo=True)
-    Base.metadata.create_all(engine)
-
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    # Set up a demo Client, with the ID 1.
-    session.add(Client('http://demo.yubico.com/app-identity',
-                       ['http://demo.yubico.com']))
-    session.commit()
-
-    #memstore = MemcachedStore('127.0.0.1:11211')
-    memstore = DBStore(session)
-
-    application = U2FServerApplication(session, memstore)
-
-    httpd = make_server('0.0.0.0', 4711, application)
-    httpd.serve_forever()
