@@ -13,10 +13,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from u2fserver.controller import U2FController
-from u2fserver.jsobjects import (RegisterRequestData, RegisterResponseData,
-                                 AuthenticateRequestData,
-                                 AuthenticateResponseData)
+from u2fserver.core.controller import U2FController
+from u2fserver.core.jsobjects import (
+    RegisterRequestData, RegisterResponseData, AuthenticateRequestData,
+    AuthenticateResponseData)
 from webob.dec import wsgify
 from webob import exc, Response
 import json
@@ -127,8 +127,8 @@ class U2FServerApplication(object):
 if __name__ == '__main__':
     from u2fserver.model import Base, Client
     from wsgiref.simple_server import make_server
-    from u2fserver.transactionmc import MemcachedStore
-    from u2fserver.transactiondb import DBStore
+    from u2fserver.core.transactionmc import MemcachedStore
+    from u2fserver.core.transactiondb import DBStore
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 

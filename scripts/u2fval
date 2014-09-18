@@ -20,37 +20,65 @@ import os
 import argparse
 
 
-def parse_args():
+def run_parser(parser):
+    parser.add_argument('-i', '--interface', nargs='?',
+                        default='localhost', help='network interface to '
+                        'bind to')
+    parser.add_argument('-p', '--port', nargs='?', type=int, default=8080,
+                        help='TCP port to bind to')
+
+
+def client_parser(parser):
+    client_subparsers = parser.add_subparsers(dest='action', help='subcommand')
+    create_parser = client_subparsers.add_parser('create',
+                                                 help='create a client')
+    create_parser.add_argument('name', help='the name of the client')
+
+    delete_parser = client_subparsers.add_parser('delete',
+                                                 help='delete a client')
+    delete_parser.add_argument('name', help='the name of the client')
+
+
+def arg_parser():
     parser = argparse.ArgumentParser(
         description="Yubico U2F Validation Server",
         add_help=True
     )
     parser.add_argument('-c', '--config', help='specify an alternate '
                         'configuration file to use')
-    subparsers = parser.add_subparsers(dest='command', help='sub-command help')
+    subparsers = parser.add_subparsers(dest='command',
+                                       help='available commands')
 
-    client_parser = subparsers.add_parser('client', help='manage clients')
-    client_parser.add_argument('action', help='the client action to perform')
+    client_parser(subparsers.add_parser('client', help='manage clients'))
+    run_parser(subparsers.add_parser('run', help='run the server'))
 
-    run_parser = subparsers.add_parser('run', help='run the server')
-    run_parser.add_argument('-i', '--interface', nargs='?',
-                            default='localhost', help='network interface to '
-                            'bind to')
-    run_parser.add_argument('-p', '--port', nargs='?', type=int, default=8080,
-                            help='TCP port to bind to')
+    return parser
 
-    return parser.parse_args()
+
+def handle_client(settings, args):
+    print "hadle_client"
+
+
+def handle_run(settings, args):
+    print "handle_run"
+
+
+def handle_args(settings, args):
+    cmd = args.command
+    if cmd == 'client':
+        handle_client(settings, args)
+    elif cmd == 'run':
+        handle_run(settings, args)
 
 
 def main():
-    args = parse_args()
+    args = arg_parser().parse_args()
 
     if args.config:
         os.environ['U2FVAL_SETTINGS'] = args.config
     from u2fserver.config import settings
 
-    print "Args:", args
-    print "Settings:", settings
+    handle_args(settings, args)
 
 
 if __name__ == '__main__':
