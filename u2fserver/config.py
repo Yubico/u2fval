@@ -33,7 +33,7 @@ LOG_CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(SETTINGS_FILE)),
 VALUES = {
     'DATABASE_CONFIGURATION': 'db',
     'USE_MEMCACHED': 'mc',
-    'MEMCACHED_SERVERD': 'mc_hosts'
+    'MEMCACHED_SERVERS': 'mc_hosts'
 }
 
 

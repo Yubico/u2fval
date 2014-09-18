@@ -19,8 +19,8 @@ __all__ = ['MemcachedStore']
 
 
 class MemcachedStore(object):
-    def __init__(self, host, max_transactions=5, ttl=300):
-        self._mc = memcache.Client([host])
+    def __init__(self, hosts, max_transactions=5, ttl=300):
+        self._mc = memcache.Client(hosts)
         self._max_transactions = max_transactions
         self._ttl = ttl
 

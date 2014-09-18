@@ -39,6 +39,10 @@ def client_parser(parser):
     delete_parser.add_argument('name', help='the name of the client')
 
 
+def db_parser(parser):
+    parser.add_argument('action', choices=['init'], help='subcommand')
+
+
 def arg_parser():
     parser = argparse.ArgumentParser(
         description="Yubico U2F Validation Server",
@@ -49,18 +53,36 @@ def arg_parser():
     subparsers = parser.add_subparsers(dest='command',
                                        help='available commands')
 
-    client_parser(subparsers.add_parser('client', help='manage clients'))
     run_parser(subparsers.add_parser('run', help='run the server'))
+    client_parser(subparsers.add_parser('client', help='manage clients'))
+    db_parser(subparsers.add_parser('db', help='manage database'))
 
     return parser
 
 
 def handle_client(settings, args):
-    print "hadle_client"
+    print "handle_client"
 
 
 def handle_run(settings, args):
-    print "handle_run"
+    from u2fserver.core.server import create_application
+    from wsgiref.simple_server import make_server
+
+    application = create_application(settings)
+    httpd = make_server(args.interface, args.port, application)
+    print "Starting server on http://%s:%d..." % (args.interface, args.port)
+    httpd.serve_forever()
+
+
+def handle_db(settings, args):
+    print "handle_db"
+    from u2fserver.model import Base
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    engine = create_engine(settings['db'], echo=True)
+    Base.metadata.create_all(engine)
+    print "Database intialized!"
 
 
 def handle_args(settings, args):
@@ -69,6 +91,8 @@ def handle_args(settings, args):
         handle_client(settings, args)
     elif cmd == 'run':
         handle_run(settings, args)
+    elif cmd == 'db':
+        handle_db(settings, args)
 
 
 def main():
