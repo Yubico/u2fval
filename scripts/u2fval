@@ -109,7 +109,12 @@ def handle_client(settings, args):
                 controller.create_client(args.name, args.appId, args.facets)
                 print 'Created client: %s' % args.name
             elif cmd == 'show':
-                print controller.get_client(args.name)
+                client = controller.get_client(args.name)
+                print 'Client: %s' % client.name
+                print 'AppID: %s' % client.app_id
+                print 'FacetIDs:'
+                for facet in client.valid_facets:
+                    print '  %s' % facet
             elif cmd == 'update':
                 controller.update_client(args.name, args.appId, args.facets)
                 print 'Updated client: %s' % args.name

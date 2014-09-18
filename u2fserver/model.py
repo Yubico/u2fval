@@ -113,7 +113,7 @@ class Device(Base):
         if filter is None:
             data['properties'] = dict(self.properties)
         else:
-            data['properties'] = dict(self.properties).fromkeys(filter)
+            data['properties'] = {k:self.properties.get(k) for k in filter}
         return data
 
 

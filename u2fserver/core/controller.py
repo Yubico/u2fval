@@ -20,10 +20,11 @@ from u2flib_server.utils import rand_bytes
 
 class U2FController(object):
 
-    def __init__(self, session, memstore, client_id):
+    def __init__(self, session, memstore, client_name):
         self._session = session
         self._memstore = memstore
-        self._client = session.query(Client).get(client_id)
+        self._client = session.query(Client) \
+            .filter(Client.name == client_name).one()
 
     def _get_user(self, uuid):
         return self._session.query(User).filter(User.uuid == uuid).first()

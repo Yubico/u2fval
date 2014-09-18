@@ -33,11 +33,11 @@ class U2FServerApplication(object):
 
     @wsgify
     def __call__(self, request):
-        client_id = request.path_info_pop()
-        if not client_id:
+        client_name = request.path_info_pop()
+        if not client_name:
             raise exc.HTTPNotFound
         try:
-            resp = self.client(request, client_id)
+            resp = self.client(request, client_name)
             if not isinstance(resp, Response):
                 resp = Response(json.dumps(resp),
                                 content_type='application/json')
@@ -46,14 +46,13 @@ class U2FServerApplication(object):
             self._session.rollback()
             raise
         finally:
-            if self._session.dirty:
-                self._session.commit()
+            self._session.commit()
 
-    def client(self, request, client_id):
+    def client(self, request, client_name):
         uuid = request.path_info_pop()
         if not uuid:
             raise exc.HTTPNotFound
-        controller = U2FController(self._session, self._memstore, client_id)
+        controller = U2FController(self._session, self._memstore, client_name)
         return self.user(request, controller, uuid.encode('utf-8'))
 
 
@@ -68,7 +67,9 @@ class U2FServerApplication(object):
                 return self.device(request, controller, uuid, page)
 
         if request.method == 'GET':
-            filter = request.params.get('filter', None)
+            filter = request.params.get('filter')
+            if filter is not None:
+                filter = filter.split(',')
             return controller.get_descriptors(uuid, filter)
         elif request.method == 'DELETE':
             controller.delete_user(uuid)
@@ -114,7 +115,9 @@ class U2FServerApplication(object):
 
     def device(self, request, controller, uuid, handle):
         if request.method == 'GET':
-            filter = request.params.get('filter', None)
+            filter = request.params.get('filter')
+            if filter is not None:
+                filter = filter.split(',')
             return controller.get_descriptor(handle, filter)
         elif request.method == 'POST':
             props = json.loads(request.body)
@@ -130,6 +133,8 @@ class U2FServerApplication(object):
 def create_application(settings):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+    from u2fserver.core.transactionmc import MemcachedStore
+    from u2fserver.core.transactiondb import DBStore
     engine = create_engine(settings['db'], echo=True)
 
     Session = sessionmaker(bind=engine)
