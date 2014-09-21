@@ -40,6 +40,14 @@ class U2FController(object):
             self._client.users.append(user)
         return user
 
+    def get_trusted_facets(self):
+        return {
+            'trustedFacets': [{
+                'version': {'major': 2, 'minor': 0},
+                'ids': self._client.valid_facets
+            }]
+        }
+
     def delete_user(self, uuid):
         user = self._get_user(uuid)
         if user is not None:

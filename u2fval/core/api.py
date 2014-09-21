@@ -50,11 +50,13 @@ class U2FServerApplication(object):
 
     def client(self, request, client_name):
         uuid = request.path_info_pop()
-        if not uuid:
-            raise exc.HTTPNotFound
         controller = U2FController(self._session, self._memstore, client_name)
+        if not uuid:
+            if request.method == 'GET':
+                return controller.get_trusted_facets()
+            else:
+                raise exc.HTTPMethodNotAllowed
         return self.user(request, controller, uuid.encode('utf-8'))
-
 
     def user(self, request, controller, uuid):
         if request.path_info_peek():
