@@ -30,11 +30,14 @@ class DBStore(object):
         self._session.query(Transaction) \
             .filter(Transaction.created_at < expiration).delete()
 
-    def store(self, uuid, transaction_id, data):
+    def store(self, client_id, user_id, transaction_id, data):
         transaction_id = transaction_id.encode('hex')
-        user = self._session.query(User).filter(User.uuid == uuid).first()
+        user = self._session.query(User) \
+            .filter(User.client_id == client_id) \
+            .filter(User.name == user_id).first()
         if user is None:
-            user = User(uuid)
+            user = User(user_id)
+            user.client_id = client_id
             self._session.add(user)
         else:
             self._delete_expired()
@@ -44,12 +47,13 @@ class DBStore(object):
                 self._session.delete(transaction)
         user.transactions.append(Transaction(transaction_id, data))
 
-    def retrieve(self, uuid, transaction_id):
+    def retrieve(self, client_id, user_id, transaction_id):
         transaction_id = transaction_id.encode('hex')
         self._delete_expired()
         transaction = self._session.query(Transaction) \
             .filter(Transaction.transaction_id == transaction_id).one()
-        if transaction.user.uuid != uuid:
-            raise ValueError('Transaction not valid for uuid: %s' % uuid)
+        if transaction.user.name != user_id or \
+                transaction.user.client_id != client_id:
+            raise ValueError('Transaction not valid for user_id: %s' % user_id)
         self._session.delete(transaction)
         return transaction.data

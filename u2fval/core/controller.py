@@ -31,22 +31,22 @@ class U2FController(object):
         self._client = session.query(Client) \
             .filter(Client.name == client_name).one()
 
-    def _get_user(self, uuid):
+    def _get_user(self, user_id):
         return self._session.query(User) \
             .filter(User.client_id == self._client.id) \
-            .filter(User.uuid == uuid).first()
+            .filter(User.name == user_id).first()
 
     def _get_device(self, handle):
         return self._session.query(Device).join(Device.user) \
             .filter(User.client_id == self._client.id) \
             .filter(Device.handle == handle).first()
 
-    def _get_or_create_user(self, uuid):
-        user = self._get_user(uuid)
+    def _get_or_create_user(self, user_id):
+        user = self._get_user(user_id)
         if user is None:
-            user = User(uuid)
+            user = User(user_id)
             self._client.users.append(user)
-            log.info('User created: "%s/%s"' % (self._client.name, uuid))
+            log.info('User created: "%s/%s"' % (self._client.name, user_id))
         return user
 
     @property
@@ -61,23 +61,23 @@ class U2FController(object):
             }]
         }
 
-    def delete_user(self, uuid):
-        user = self._get_user(uuid)
+    def delete_user(self, user_id):
+        user = self._get_user(user_id)
         if user is not None:
             self._session.delete(user)
-            log.info('User deleted: "%s/%s"' % (self._client.name, uuid))
+            log.info('User deleted: "%s/%s"' % (self._client.name, user_id))
 
-    def register_start(self, uuid):
+    def register_start(self, user_id):
         # RegisterRequest
         enroll = U2FEnrollment(self._client.app_id, self._client.valid_facets)
         enroll_data = enroll.data
-        self._memstore.store(uuid, enroll.challenge, {
+        self._memstore.store(self._client.id, user_id, enroll.challenge, {
             'request': enroll.serialize()
         })
 
         # SignRequest[]
         sign_requests = []
-        user = self._get_user(uuid)
+        user = self._get_user(user_id)
         if user:
             for dev in user.devices.values():
                 binding = U2FBinding.deserialize(dev.bind_data)
@@ -87,23 +87,23 @@ class U2FController(object):
         # To support multiple versions, add more RegisterRequests.
         return [enroll_data], sign_requests
 
-    def register_complete(self, uuid, resp):
+    def register_complete(self, user_id, resp):
         memkey = resp.clientData.challenge
-        data = self._memstore.retrieve(uuid, memkey)
+        data = self._memstore.retrieve(self._client.id, user_id, memkey)
         u2f_enroll = U2FEnrollment.deserialize(data['request'])
         bind = u2f_enroll.bind(resp)
-        user = self._get_or_create_user(uuid)
+        user = self._get_or_create_user(user_id)
         dev = user.add_device(bind.serialize())
         # TODO: Save registration time property.
         log.info('User: "%s/%s" - Device registered: "%s"' % (
-            self._client.name, uuid, dev.handle))
+            self._client.name, user_id, dev.handle))
         return dev.handle
 
     def unregister(self, handle):
         dev = self._get_device(handle)
         self._session.delete(dev)
         log.info('User: "%s/%s" - Device unregistered: "%s"' % (
-            self._client.name, dev.user.uuid, handle))
+            self._client.name, dev.user.name, handle))
 
     def set_props(self, handle, props):
         dev = self._get_device(handle)
@@ -113,14 +113,14 @@ class U2FController(object):
         dev = self._session.query(Device).filter(Device.handle == handle).one()
         return dev.get_descriptor(filter)
 
-    def get_descriptors(self, uuid, filter=None):
-        user = self._get_user(uuid)
+    def get_descriptors(self, user_id, filter=None):
+        user = self._get_user(user_id)
         if user is None:
             return []
         return [d.get_descriptor(filter) for d in user.devices.values()]
 
-    def authenticate_start(self, uuid, invalidate=False):
-        user = self._get_user(uuid)
+    def authenticate_start(self, user_id, invalidate=False):
+        user = self._get_user(user_id)
         sign_requests = []
         challenges = {}
         rand = rand_bytes(32)
@@ -132,15 +132,15 @@ class U2FController(object):
                 'keyHandle': challenge.data.keyHandle,
                 'challenge': challenge.serialize()
             }
-        self._memstore.store(uuid, rand, {
+        self._memstore.store(self._client.id, user_id, rand, {
             'challenges': challenges
         })
         return sign_requests
 
-    def authenticate_complete(self, uuid, resp):
+    def authenticate_complete(self, user_id, resp):
         memkey = resp.clientData.challenge
-        stored = self._memstore.retrieve(uuid, memkey)
-        user = self._get_user(uuid)
+        stored = self._memstore.retrieve(self._client.id, user_id, memkey)
+        user = self._get_user(user_id)
         for handle, data in stored['challenges'].items():
             if data['keyHandle'] == resp.keyHandle:
                 dev = user.devices[handle]

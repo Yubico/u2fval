@@ -90,19 +90,19 @@ def arg_parser():
     return parser
 
 
-def create_client_controller(settings, echo=False):
+def create_session(settings, echo=False):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from u2fval.client.controller import ClientController
     engine = create_engine(settings['db'], echo=echo)
 
     Session = sessionmaker(bind=engine)
-    session = Session()
-    return ClientController(session)
+    return Session()
 
 
 def handle_client(settings, args):
-    controller = create_client_controller(settings, args.debug)
+    from u2fval.client.controller import ClientController
+    session = create_session(settings, args.debug)
+    controller = ClientController(session)
 
     cmd = args.action
     if cmd == 'list':
@@ -137,14 +137,16 @@ def handle_client(settings, args):
 def handle_run(settings, args):
     from u2fval.core.api import create_application
     from u2fval.client.pathinfo_auth import client_from_pathinfo
+    from u2fval.client.controller import ClientController
     from wsgiref.simple_server import make_server
 
     extra_environ = {}
     if args.client:
         # Ensure the existance of the client.
-        controller = create_client_controller(settings, args.debug)
+        session = create_session(settings, args.debug)
+        controller = ClientController(session)
         controller.get_client(args.client)
-        controller._session.close()
+        session.close()
         print "Running in single-client mode for client: '%s'" % args.client
         extra_environ['REMOTE_USER'] = args.client
         application = create_application(settings)

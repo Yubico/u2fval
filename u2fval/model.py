@@ -54,11 +54,11 @@ class Client(Base):
 
 class User(Base):
     __tablename__ = 'users'
-    __table_args__ = (UniqueConstraint('client_id', 'uuid',
+    __table_args__ = (UniqueConstraint('client_id', 'name',
                                        name='_client_user_uc'),)
 
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
-    uuid = Column(String(32), nullable=False)
+    name = Column(String(32), nullable=False)
     client_id = Column(Integer, ForeignKey('clients.id'))
     client = relationship(Client, backref=backref('users'))
     devices = relationship(
@@ -75,8 +75,8 @@ class User(Base):
         lazy='dynamic',
         cascade='all, delete-orphan')
 
-    def __init__(self, uuid):
-        self.uuid = uuid
+    def __init__(self, name):
+        self.name = name
 
     def add_device(self, bind_data, properties=None):
         return Device(self, bind_data, properties)

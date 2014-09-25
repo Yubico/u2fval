@@ -49,39 +49,40 @@ class U2FServerApplication(object):
             self._session.commit()
 
     def client(self, request, client_name):
-        uuid = request.path_info_pop()
+        user_id = request.path_info_pop()
         controller = U2FController(self._session, self._memstore, client_name)
-        if not uuid:
+        if not user_id:
             if request.method == 'GET':
                 return controller.get_trusted_facets()
             else:
                 raise exc.HTTPMethodNotAllowed
-        return self.user(request, controller, uuid.encode('utf-8'))
+        return self.user(request, controller, user_id.encode('utf-8'))
 
-    def user(self, request, controller, uuid):
+    def user(self, request, controller, user_id):
         if request.path_info_peek():
             page = request.path_info_pop()
             if page == 'register':
-                return self.register(request, controller, uuid)
+                return self.register(request, controller, user_id)
             elif page == 'authenticate':
-                return self.authenticate(request, controller, uuid)
+                return self.authenticate(request, controller, user_id)
             else:
-                return self.device(request, controller, uuid, page)
+                return self.device(request, controller, user_id, page)
 
         if request.method == 'GET':
             filter = request.params.get('filter')
             if filter is not None:
                 filter = filter.split(',')
-            return controller.get_descriptors(uuid, filter)
+            return controller.get_descriptors(user_id, filter)
         elif request.method == 'DELETE':
-            controller.delete_user(uuid)
+            controller.delete_user(user_id)
             return exc.HTTPNoContent()
         else:
             raise exc.HTTPMethodNotAllowed
 
-    def register(self, request, controller, uuid):
+    def register(self, request, controller, user_id):
         if request.method == 'GET':
-            register_requests, sign_requests = controller.register_start(uuid)
+            register_requests, sign_requests = controller.register_start(
+                user_id)
             return RegisterRequestData(
                 registerRequests=register_requests,
                 authenticateRequests=sign_requests
@@ -89,7 +90,8 @@ class U2FServerApplication(object):
         elif request.method == 'POST':
             data = RegisterResponseData(request.body)
             try:
-                handle = controller.register_complete(uuid, data.registerResponse)
+                handle = controller.register_complete(user_id,
+                                                      data.registerResponse)
             except KeyError:
                 raise exc.HTTPBadRequest
             controller.set_props(handle, data.setProps)
@@ -97,9 +99,9 @@ class U2FServerApplication(object):
         else:
             raise exc.HTTPMethodNotAllowed
 
-    def authenticate(self, request, controller, uuid):
+    def authenticate(self, request, controller, user_id):
         if request.method == 'GET':
-            sign_requests = controller.authenticate_start(uuid)
+            sign_requests = controller.authenticate_start(user_id)
             return AuthenticateRequestData(
                 authenticateRequests=sign_requests
             )
@@ -107,7 +109,7 @@ class U2FServerApplication(object):
             data = AuthenticateResponseData(request.body)
             try:
                 handle = controller.authenticate_complete(
-                    uuid, data.authenticateResponse)
+                    user_id, data.authenticateResponse)
             except KeyError:
                 raise exc.HTTPBadRequest
             controller.set_props(handle, data.setProps)
@@ -115,7 +117,7 @@ class U2FServerApplication(object):
         else:
             raise exc.HTTPMethodNotAllowed
 
-    def device(self, request, controller, uuid, handle):
+    def device(self, request, controller, user_id, handle):
         if request.method == 'GET':
             filter = request.params.get('filter')
             if filter is not None:
