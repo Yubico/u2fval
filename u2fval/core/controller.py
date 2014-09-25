@@ -16,6 +16,11 @@
 from u2fval.model import Client, User, Device
 from u2flib_server.u2f_v2 import U2FEnrollment, U2FBinding, U2FChallenge
 from u2flib_server.utils import rand_bytes
+import logging
+
+
+__all__ = ['U2FController']
+log = logging.getLogger(__name__)
 
 
 class U2FController(object):
@@ -27,10 +32,13 @@ class U2FController(object):
             .filter(Client.name == client_name).one()
 
     def _get_user(self, uuid):
-        return self._session.query(User).filter(User.uuid == uuid).first()
+        return self._session.query(User) \
+            .filter(User.client_id == self._client.id) \
+            .filter(User.uuid == uuid).first()
 
     def _get_device(self, handle):
-        return self._session.query(Device) \
+        return self._session.query(Device).join(Device.user) \
+            .filter(User.client_id == self._client.id) \
             .filter(Device.handle == handle).first()
 
     def _get_or_create_user(self, uuid):
@@ -38,7 +46,12 @@ class U2FController(object):
         if user is None:
             user = User(uuid)
             self._client.users.append(user)
+            log.info('User created: "%s/%s"' % (self._client.name, uuid))
         return user
+
+    @property
+    def client_name(self):
+        return self._client.name
 
     def get_trusted_facets(self):
         return {
@@ -52,6 +65,7 @@ class U2FController(object):
         user = self._get_user(uuid)
         if user is not None:
             self._session.delete(user)
+            log.info('User deleted: "%s/%s"' % (self._client.name, uuid))
 
     def register_start(self, uuid):
         # RegisterRequest
@@ -81,11 +95,15 @@ class U2FController(object):
         user = self._get_or_create_user(uuid)
         dev = user.add_device(bind.serialize())
         # TODO: Save registration time property.
+        log.info('User: "%s/%s" - Device registered: "%s"' % (
+            self._client.name, uuid, dev.handle))
         return dev.handle
 
     def unregister(self, handle):
         dev = self._get_device(handle)
         self._session.delete(dev)
+        log.info('User: "%s/%s" - Device unregistered: "%s"' % (
+            self._client.name, dev.user.uuid, handle))
 
     def set_props(self, handle, props):
         dev = self._get_device(handle)

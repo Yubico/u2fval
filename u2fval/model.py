@@ -14,7 +14,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from sqlalchemy import (Column, Integer, String, Text, ForeignKey, Sequence,
-                        DateTime)
+                        DateTime, UniqueConstraint)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -54,9 +54,11 @@ class Client(Base):
 
 class User(Base):
     __tablename__ = 'users'
+    __table_args__ = (UniqueConstraint('client_id', 'uuid',
+                                       name='_client_user_uc'),)
 
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
-    uuid = Column(String(32), nullable=False, unique=True)
+    uuid = Column(String(32), nullable=False)
     client_id = Column(Integer, ForeignKey('clients.id'))
     client = relationship(Client, backref=backref('users'))
     devices = relationship(

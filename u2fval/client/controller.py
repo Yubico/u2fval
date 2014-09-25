@@ -17,9 +17,11 @@
 from u2fval.model import Client
 from sqlalchemy.orm import exc
 import re
+import logging
 
 
-__all__ = ['create_controller']
+__all__ = ['ClientController']
+log = logging.getLogger(__name__)
 
 
 NAME_PATTERN = re.compile(r'^[a-zA-Z0-9-_.]{3,}$')
@@ -32,7 +34,6 @@ def ensure_valid_name(name):
         raise ValueError('Client names may only contain the characters a-z, '
                          'A-Z, 0-9, "." (period), "_" (underscore), and "-" '
                          '(dash)')
-
 
 
 class ClientController(object):
@@ -52,11 +53,12 @@ class ClientController(object):
         ensure_valid_name(name)
 
         try:
-            existing = self.get_client(name)
+            self.get_client(name)
             raise ValueError('Client already exists: %s' % name)
         except KeyError:
             client = Client(name, app_id, valid_facets)
             self._session.add(client)
+            log.info('Client created: %s' % name)
 
     def update_client(self, name, app_id=None, valid_facets=None):
         client = self.get_client(name)
@@ -68,6 +70,7 @@ class ClientController(object):
     def delete_client(self, name):
         client = self.get_client(name)
         self._session.delete(client)
+        log.info('Client deleted: %s' % name)
 
     def list_clients(self):
         return [c[0] for c in self._session.query(Client.name).all()]
