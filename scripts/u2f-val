@@ -22,11 +22,12 @@ import argparse
 
 
 def run_parser(parser):
-    parser.add_argument('-i', '--interface', nargs='?',
-                        default='localhost', help='network interface to '
-                        'bind to')
-    parser.add_argument('-p', '--port', nargs='?', type=int, default=8080,
+    parser.add_argument('-i', '--interface', default='localhost',
+                        help='network interface to bind to')
+    parser.add_argument('-p', '--port', type=int, default=8080,
                         help='TCP port to bind to')
+    parser.add_argument('-c', '--client', help='run in single client mode '
+                        'using CLIENT')
 
 
 def client_parser(parser):
@@ -131,16 +132,23 @@ def handle_client(settings, args):
 
 def handle_run(settings, args):
     from u2fval.core.api import create_application
+    from u2fval.client.pathinfo_auth import client_from_pathinfo
     from wsgiref.simple_server import make_server
 
-    application = create_application(settings)
+    extra_environ = {}
+    if args.client:
+        print "Running in single-client mode for client: '%s'" % args.client
+        extra_environ['REMOTE_USER'] = args.client
+        application = create_application(settings)
+    else:
+        application = client_from_pathinfo(create_application(settings))
     httpd = make_server(args.interface, args.port, application)
+    httpd.base_environ.update(extra_environ)
     print "Starting server on http://%s:%d..." % (args.interface, args.port)
     httpd.serve_forever()
 
 
 def handle_db(settings, args):
-    print "handle_db"
     from u2fval.model import Base
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker

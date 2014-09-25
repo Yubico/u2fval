@@ -33,7 +33,7 @@ class U2FServerApplication(object):
 
     @wsgify
     def __call__(self, request):
-        client_name = request.path_info_pop()
+        client_name = request.environ.get('REMOTE_USER')
         if not client_name:
             raise exc.HTTPNotFound
         try:

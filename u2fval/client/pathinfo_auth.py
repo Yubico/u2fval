@@ -13,13 +13,14 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-WSGI file for u2f-val.
-To function, clients will need to be specified via the U2F_CLIENT WSGI environ
-key. This can be hard-coded for mod_wsgi, or provided through some middleware,
-for example.
-"""
-from u2fval.config import settings
-from u2fval.core.api import create_application
 
-application = create_application(settings)
+from webob.dec import wsgify
+
+
+__all__ = ['client_from_pathinfo']
+
+
+@wsgify.middleware
+def client_from_pathinfo(request, app):
+    request.environ['REMOTE_USER'] = request.path_info_pop()
+    return app
