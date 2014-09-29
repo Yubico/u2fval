@@ -1,0 +1,118 @@
+== REST API
+U2F-val exposes its functionality over a REST API, which is made accessible to
+authenticated clients. Clients are responsible for supplying a unique-per-user
+persistent identifier for each user in its system in the form of a string no
+more than 32 characters long. Usernames should only be used if they are
+immutable. This user identification string is denoted userId in the API below.
+
+=== JavaScript object type definitions
+The following JavaScript objects are used when interacting with the REST API.
+In addition to these, the RegisterRequest, RegisterResponse,
+AuthenticationRequest, and AuthenticationResponse types from the U2F_V2
+specification are used.
+
+[source]
+----
+dictionary DeviceDescriptor {
+  DOMString handle;
+  dictionary properties;
+};
+----
+
+[source]
+----
+dictionary RegisterRequestData {
+  AuthenticateRequest[] authenticateRequests;
+  RegisterRequest[] registerRequests;
+};
+----
+
+[source]
+----
+dictionary RegisterResponseData {
+  RegisterResponse registerResponse;
+  dictionary setProps;
+  DOMString[] getProps;
+};
+----
+
+[source]
+----
+dictionaty AuthenticateRequestData {
+  AuthenticateRequest[] authenticateRequests;
+}
+----
+
+[source]
+----
+dictionary AuthenticateResponseData {
+  AuthenticateResponse authenticateResponse;
+  dictionary setProps;
+  DOMString[] getProps;
+};
+----
+
+=== HTTP resources
+
+*Resource*
+/:userId
+
+*Methods*
++GET | DELETE+
+
+*Query parameters*
+Optional
+filter=string[,string]...
+
+*Description*
+GET returns a list of device handles, with their properties (optionally only properties in the filter).
+Server response: DeviceDescriptor[]
+
+DELETE deletes all data associated with the user.
+
+
+*Resource*
+/:userId/register
+
+*Methods*
++GET | POST+
+
+*Description*
+GET initializes registration for the given user (all registered devices).
+Server response: RegisterRequestData
+  
+POST completes the registration, storing a new registration associated with the user.
+Client request: RegisterResponseData
+Server response: DeviceDescriptor
+    
+*Resource*
+/:userId/authenticate
+
+*Methods*
++GET | POST+
+
+*Description*
+GET initializes authentication for the given user (all registered devices).
+Server response: AuthenticateRequestData
+      
+POST completes the authentication, updating and returning properties for the device which signed the challenge.
+Client request: AuthenticateResponseData
+Server response: DeviceDescriptor
+
+*Resource*
+/:uid/:handle
+
+*Methods*
++GET | POST | DELETE+
+
+*Query parameters*
+Optional
+filter=string[,string]...
+
+*Description*
+GET returns properties for the device, optionally filtered.
+Server Response: DeviceDescriptor
+POST sets properties for the device.
+Client Request: {“<prop-name>”: “<prop-value>”, ...}
+DELETE removes the device registration.
+
