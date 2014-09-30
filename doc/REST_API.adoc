@@ -11,7 +11,14 @@ In addition to these, the RegisterRequest, RegisterResponse,
 AuthenticationRequest, and AuthenticationResponse types from the U2F_V2
 specification are used.
 
-[source]
+==== Device Descriptor
+The DeviceDescriptor describes a registered U2F device. Each Device has a 
+unique handle used to identify the device, as well as a dictionary of key-value
+properties. A pre-defined set of these properties are set by the system and are
+read-only. Other than the pre-defined set, the client can store arbitrary data
+in these properties.
+
+[source,javascript]
 ----
 dictionary DeviceDescriptor {
   DOMString handle;
@@ -19,7 +26,11 @@ dictionary DeviceDescriptor {
 };
 ----
 
-[source]
+==== RegisterRequestData
+The RegisterRequestData contains the parameters needed to invoke the _register_
+function of a FIDO client.
+
+[source,javascript]
 ----
 dictionary RegisterRequestData {
   AuthenticateRequest[] authenticateRequests;
@@ -27,92 +38,160 @@ dictionary RegisterRequestData {
 };
 ----
 
-[source]
+===== Members
+*authenticateRequests* of type _array_ of _AuthenticateRequest_::
+  A list of AuthenticateRequest dictionaries, one for each U2F device already
+  registered by the user.
+*registerRequests* of type _array_ of _RegisterRequest_::
+  A list of RegisterRequest dictionaries, one for each protocol version that
+  the server is willing to support.
+
+==== RegisterResponseData
+The RegisterResponseData contains the RegisterResponse returned by a successful
+call to the _register_ function of a FIDO client, as well as any properties to
+set, and names of properties to return, if the registration succeeds.
+
+[source,javascript]
 ----
 dictionary RegisterResponseData {
   RegisterResponse registerResponse;
-  dictionary setProps;
+  Dictionary setProps;
   DOMString[] getProps;
 };
 ----
 
-[source]
+===== Members
+*registerResponse* of type _RegisterResponse_::
+  The RegisterResponse to return to the server for validation.
+*setProps* of type _Dictionary_::
+  A Dictionary of properties to set for the Device created upon successful
+  validation of the RegisterResponse.
+*getProps* of type _array_ of _DOMString_::
+  A list of property keys to return the values for, if registration succeeds.
+
+==== AuthenticationRequestData
+The AuthenticationRequestData contains the parameters needed to invoke the
+_authenticate_ function of a FIDO client.
+
+[source,javascript]
 ----
 dictionaty AuthenticateRequestData {
   AuthenticateRequest[] authenticateRequests;
 }
 ----
 
-[source]
+===== Members
+*authenticateRequests* of type _array_ of _AuthenticateRequest_::
+  A list of AuthenticateRequest dictionaries, one for each previously
+  registered U2F device for the user.
+
+==== AuthenticationResponseData
+The AuthenticationResponseData contains the AuthenticateResponse returned by a
+successful call to the _authenticate_ function of a FIDO client, as well as any
+properties to set, and names of properties to return, if the authentication
+succeeds.
+
+[source,javascript]
 ----
 dictionary AuthenticateResponseData {
   AuthenticateResponse authenticateResponse;
-  dictionary setProps;
+  Dictionary setProps;
   DOMString[] getProps;
 };
 ----
 
+===== Members
+*authenticateResponse* of type _AuthenticateResponse_::
+  The AuthenticateResponse to return to the server for validation.
+*setProps* of type _Dictionary_::
+  A Dictionary of properties to set for the Device for which authentication is
+  perfomed, if authentication succeeds.
+*getProps* of type _array_ of _DOMString_::
+  A list of property keys to return the values for, if authentication succeeds.
+
 === HTTP resources
 
-*Resource*
-/:userId
+==== /:userId
+*Example*::
+_https://example.com/johndoe_
 
-*Methods*
-+GET | DELETE+
+==== +HTTP GET+
+Returns a list of device handles, with their properties, optionally filtered.
 
-*Query parameters*
-Optional
-filter=string[,string]...
+===== Query parameters
+*filter*=string[,string ...]::
+  (_optional_)
+  When set, filter the properties returned by the names in the filter string.
 
-*Description*
-GET returns a list of device handles, with their properties (optionally only properties in the filter).
-Server response: DeviceDescriptor[]
+===== Server response
+_DeviceDescriptor[]_
 
-DELETE deletes all data associated with the user.
+==== +HTTP DELETE+
+Deletes all data associated with the user.
 
 
-*Resource*
-/:userId/register
+==== /:userId/register
+*Example*::
+_https://example.com/johndoe/register_
 
-*Methods*
-+GET | POST+
+==== +HTTP GET+
+Initializes registration for the given user (all registered devices).
 
-*Description*
-GET initializes registration for the given user (all registered devices).
-Server response: RegisterRequestData
+===== Server response
+_RegisterRequestData_
   
-POST completes the registration, storing a new registration associated with the user.
-Client request: RegisterResponseData
-Server response: DeviceDescriptor
-    
-*Resource*
-/:userId/authenticate
+==== +HTTP POST+
+Completes the registration, storing a new device associated with the user.
 
-*Methods*
-+GET | POST+
+===== Client request body
+_RegisterResponseData_
 
-*Description*
-GET initializes authentication for the given user (all registered devices).
-Server response: AuthenticateRequestData
-      
-POST completes the authentication, updating and returning properties for the device which signed the challenge.
-Client request: AuthenticateResponseData
-Server response: DeviceDescriptor
+===== Server response
+_DeviceDescriptor_
 
-*Resource*
-/:uid/:handle
 
-*Methods*
-+GET | POST | DELETE+
+==== /:userId/authenticate
+*Example*::
+_https://example.com/johndoe/authenticate_
 
-*Query parameters*
-Optional
-filter=string[,string]...
+==== +HTTP GET+
+Initializes authentication for the given user (all registered devices).
 
-*Description*
-GET returns properties for the device, optionally filtered.
-Server Response: DeviceDescriptor
-POST sets properties for the device.
-Client Request: {“<prop-name>”: “<prop-value>”, ...}
-DELETE removes the device registration.
+===== Server response
+_AuthenticateRequestData_
+
+==== +HTTP POST+
+Completes the authentication, updating and returning properties for the device
+which signed the challenge.
+
+===== Client request
+_AuthenticateResponseData_
+
+===== Server response
+_DeviceDescriptor_
+
+
+==== /:uid/:handle
+*Example*::
+_https://example.com/johndoe/0f0f0f0f0f...0f_
+
+==== +HTTP GET+
+Returns properties for the device, optionally filtered.
+
+===== Query parameters
+*filter*=string[,string ...]::
+  (_optional_)
+  When set, filter the properties returned by the names in the filter string.
+
+===== Server Response
+DeviceDescriptor
+
+==== +HTTP POST+
+Sets properties for the device.
+
+===== Client Request
+_Dictionary_
+
+==== +HTTP DELETE+
+Removes the device registration.
 
