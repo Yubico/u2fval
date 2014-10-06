@@ -78,7 +78,7 @@ class U2FController(object):
         # SignRequest[]
         sign_requests = []
         user = self._get_user(user_id)
-        if user:
+        if user is not None:
             for dev in user.devices.values():
                 binding = U2FBinding.deserialize(dev.bind_data)
                 challenge = binding.make_challenge('check-only')
@@ -121,6 +121,9 @@ class U2FController(object):
 
     def authenticate_start(self, user_id, invalidate=False):
         user = self._get_user(user_id)
+        if user is None:
+            return []
+
         sign_requests = []
         challenges = {}
         rand = rand_bytes(32)
