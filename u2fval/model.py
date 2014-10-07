@@ -21,8 +21,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from uuid import uuid4
+from datetime import datetime
 import json
-import datetime
 
 
 Base = declarative_base()
@@ -89,6 +89,8 @@ class Device(Base):
     handle = Column(String(32), nullable=False, unique=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     bind_data = Column(Text())
+    created_at = Column(DateTime, default=datetime.utcnow)
+    authenticated_at = Column(DateTime)
     _properties = relationship(
         'Property',
         backref='device',
@@ -116,6 +118,8 @@ class Device(Base):
             data['properties'] = dict(self.properties)
         else:
             data['properties'] = {k: self.properties.get(k) for k in filter}
+        data['created'] = self.created_at.isoformat() + 'Z'
+        data['last-authenticated'] = self.authenticated_at.isoformat() + 'Z'
         return data
 
 
@@ -141,7 +145,7 @@ class Transaction(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     transaction_id = Column(String(64), nullable=False, unique=True)
     _data = Column(Text())
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     def __init__(self, transaction_id, data):
         self.transaction_id = transaction_id

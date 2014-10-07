@@ -16,6 +16,7 @@
 from u2fval.model import Client, User, Device
 from u2flib_server.u2f_v2 import U2FEnrollment, U2FBinding, U2FChallenge
 from u2flib_server.utils import rand_bytes
+from datetime import datetime
 import logging
 
 
@@ -151,7 +152,7 @@ class U2FController(object):
                 challenge = U2FChallenge.deserialize(binding,
                                                      data['challenge'])
                 challenge.validate(resp)
-                # TODO: Update last authentication for device.
+                dev.authenticated_at = datetime.now()
                 return handle
         else:
             raise ValueError('No device found for keyHandle: %s' %
