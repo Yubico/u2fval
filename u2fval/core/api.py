@@ -26,9 +26,9 @@ __all__ = ['create_application']
 
 
 def parse_filter(value):
-    if value:
+    if value is not None:
         return value.split(',')
-    return []
+    return None
 
 
 class U2FServerApplication(object):

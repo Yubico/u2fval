@@ -114,12 +114,18 @@ class Device(Base):
 
     def get_descriptor(self, filter=None):
         data = {'handle': self.handle}
-        if filter is None:
-            data['properties'] = dict(self.properties)
-        else:
-            data['properties'] = {k: self.properties.get(k) for k in filter}
-        data['created'] = self.created_at.isoformat() + 'Z'
-        data['last-authenticated'] = self.authenticated_at.isoformat() + 'Z'
+
+        properties = dict(self.properties)
+        properties['created'] = self.created_at.isoformat() + 'Z'
+        authenticated = self.authenticated_at
+        if authenticated is not None:
+            authenticated = authenticated.isoformat() + 'Z'
+        properties['last-authenticated'] = authenticated
+
+        if filter is not None:
+            properties = {k: properties.get(k) for k in filter}
+        data['properties'] = properties
+
         return data
 
 

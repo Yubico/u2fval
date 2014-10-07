@@ -95,7 +95,6 @@ class U2FController(object):
         bind = u2f_enroll.bind(resp)
         user = self._get_or_create_user(user_id)
         dev = user.add_device(bind.serialize())
-        # TODO: Save registration time property.
         log.info('User: "%s/%s" - Device registered: "%s"' % (
             self._client.name, user_id, dev.handle))
         return dev.handle
