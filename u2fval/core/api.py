@@ -25,6 +25,12 @@ import json
 __all__ = ['create_application']
 
 
+def parse_filter(value):
+    if value:
+        return value.split(',')
+    return []
+
+
 class U2FServerApplication(object):
 
     def __init__(self, session, memstore):
@@ -69,10 +75,8 @@ class U2FServerApplication(object):
                 return self.device(request, controller, user_id, page)
 
         if request.method == 'GET':
-            filter = request.params.get('filter')
-            if filter is not None:
-                filter = filter.split(',')
-            return controller.get_descriptors(user_id, filter)
+            properties = parse_filter(request.params.get('filter'))
+            return controller.get_descriptors(user_id, properties)
         elif request.method == 'DELETE':
             controller.delete_user(user_id)
             return exc.HTTPNoContent()
@@ -94,8 +98,10 @@ class U2FServerApplication(object):
                                                       data.registerResponse)
             except KeyError:
                 raise exc.HTTPBadRequest
-            controller.set_props(handle, data.setProps)
-            return controller.get_descriptor(handle, data.getProps)
+            controller.set_props(handle, data.properties)
+
+            properties = parse_filter(request.params.get('filter'))
+            return controller.get_descriptor(handle, properties)
         else:
             raise exc.HTTPMethodNotAllowed
 
@@ -112,17 +118,17 @@ class U2FServerApplication(object):
                     user_id, data.authenticateResponse)
             except KeyError:
                 raise exc.HTTPBadRequest
-            controller.set_props(handle, data.setProps)
-            return controller.get_descriptor(handle, data.getProps)
+            controller.set_props(handle, data.properties)
+
+            properties = parse_filter(request.params.get('filter'))
+            return controller.get_descriptor(handle, properties)
         else:
             raise exc.HTTPMethodNotAllowed
 
     def device(self, request, controller, user_id, handle):
         if request.method == 'GET':
-            filter = request.params.get('filter')
-            if filter is not None:
-                filter = filter.split(',')
-            return controller.get_descriptor(handle, filter)
+            properties = parse_filter(request.params.get('filter'))
+            return controller.get_descriptor(handle, properties)
         elif request.method == 'POST':
             props = json.loads(request.body)
             controller.set_props(handle, props)

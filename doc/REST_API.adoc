@@ -55,19 +55,16 @@ set, and names of properties to return, if the registration succeeds.
 ----
 dictionary RegisterResponseData {
   RegisterResponse registerResponse;
-  Dictionary setProps;
-  DOMString[] getProps;
+  Dictionary properties;
 };
 ----
 
 ===== Members
 *registerResponse* of type _RegisterResponse_::
   The RegisterResponse to return to the server for validation.
-*setProps* of type _Dictionary_::
+*properties* of type _Dictionary_::
   A Dictionary of properties to set for the Device created upon successful
   validation of the RegisterResponse.
-*getProps* of type _array_ of _DOMString_::
-  A list of property keys to return the values for, if registration succeeds.
 
 ==== AuthenticationRequestData
 The AuthenticationRequestData contains the parameters needed to invoke the
@@ -95,19 +92,16 @@ succeeds.
 ----
 dictionary AuthenticateResponseData {
   AuthenticateResponse authenticateResponse;
-  Dictionary setProps;
-  DOMString[] getProps;
+  Dictionary properties;
 };
 ----
 
 ===== Members
 *authenticateResponse* of type _AuthenticateResponse_::
   The AuthenticateResponse to return to the server for validation.
-*setProps* of type _Dictionary_::
+*properties* of type _Dictionary_::
   A Dictionary of properties to set for the Device for which authentication is
   perfomed, if authentication succeeds.
-*getProps* of type _array_ of _DOMString_::
-  A list of property keys to return the values for, if authentication succeeds.
 
 === HTTP resources
 
@@ -141,6 +135,12 @@ Initializes registration for the given user (all registered devices).
 _RegisterRequestData_
   
 ==== +HTTP POST+
+
+===== Query parameters
+*filter*=string[,string ...]::
+  (_optional_)
+  When set, filter the properties returned by the names in the filter string.
+
 Completes the registration, storing a new device associated with the user.
 
 ===== Client request body
@@ -163,6 +163,11 @@ _AuthenticateRequestData_
 ==== +HTTP POST+
 Completes the authentication, updating and returning properties for the device
 which signed the challenge.
+
+===== Query parameters
+*filter*=string[,string ...]::
+  (_optional_)
+  When set, filter the properties returned by the names in the filter string.
 
 ===== Client request
 _AuthenticateResponseData_

@@ -27,12 +27,8 @@ __all__ = [
 class WithProps(object):
 
     @property
-    def getProps(self):
-        return self.get('getProps', None)
-
-    @property
-    def setProps(self):
-        return self.get('setProps', {})
+    def properties(self):
+        return self.get('properties', {})
 
 
 class RegisterRequestData(JSONDict):
