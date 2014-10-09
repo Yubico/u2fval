@@ -1,3 +1,3 @@
 == Yubico U2F Validation Server ==
-The Yubico U2F Validation Server (u2f-val) is a server that provides U2F
+The Yubico U2F Validation Server (u2fval) is a server that provides U2F
 registration and authentication through a simple JSON based REST API.

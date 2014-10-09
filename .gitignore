@@ -3,5 +3,6 @@
 build/
 dist/
 .ropeproject/
+MANIFEST
 ChangeLog
 conf/u2f-val.conf
