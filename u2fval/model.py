@@ -18,7 +18,7 @@ from sqlalchemy import (Column, Integer, String, Text, ForeignKey, Sequence,
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from uuid import uuid4
 from datetime import datetime
@@ -78,8 +78,33 @@ class User(Base):
     def __init__(self, name):
         self.name = name
 
-    def add_device(self, bind_data, properties=None):
-        return Device(self, bind_data, properties)
+    def add_device(self, bind_data, cert, properties=None):
+        certificate = object_session(self).query(Certificate) \
+            .filter(Certificate.fingerprint == cert.get_fingerprint()) \
+            .first()
+        if certificate is None:
+            certificate = Certificate(cert)
+        return Device(self, bind_data, certificate, properties)
+
+
+class Certificate(Base):
+    __tablename__ = 'certificates'
+
+    id = Column(Integer, Sequence('certificate_id_seq'), primary_key=True)
+    fingerprint = Column(String(32), nullable=False, unique=True)
+    _der = Column('der', Text(), nullable=False)
+
+    @hybrid_property
+    def der(self):
+        return self._der.decode('base64')
+
+    @der.setter
+    def der(self, der):
+        self._der = der.encode('base64')
+
+    def __init__(self, cert):
+        self.fingerprint = cert.get_fingerprint()
+        self.der = cert.as_der()
 
 
 class Device(Base):
@@ -89,6 +114,8 @@ class Device(Base):
     handle = Column(String(32), nullable=False, unique=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     bind_data = Column(Text())
+    certificate_id = Column(Integer, ForeignKey('certificates.id'))
+    certificate = relationship('Certificate')
     created_at = Column(DateTime, default=datetime.utcnow)
     authenticated_at = Column(DateTime)
     _properties = relationship(
@@ -104,13 +131,14 @@ class Device(Base):
         creator=lambda k, v: Property(k, v)
     )
 
-    def __init__(self, user, bind_data, properties=None):
+    def __init__(self, user, bind_data, certificate, properties=None):
         if properties is None:
             properties = {}
         self.handle = uuid4().hex
         self.bind_data = bind_data
         self.properties.update(properties)
         self.user = user
+        self.certificate = certificate
 
     def get_descriptor(self, filter=None):
         data = {'handle': self.handle}

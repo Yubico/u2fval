@@ -14,7 +14,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from u2fval.model import Client, User, Device
-from u2flib_server.u2f_v2 import U2FEnrollment, U2FBinding, U2FChallenge
+from u2flib_server.u2f_v2 import (start_register, complete_register,
+                                  start_authenticate, verify_authenticate)
 from u2flib_server.utils import rand_bytes
 from datetime import datetime
 import logging
@@ -70,31 +71,29 @@ class U2FController(object):
 
     def register_start(self, user_id):
         # RegisterRequest
-        enroll = U2FEnrollment(self._client.app_id, self._client.valid_facets)
-        enroll_data = enroll.data
-        self._memstore.store(self._client.id, user_id, enroll.challenge, {
-            'request': enroll.serialize()
-        })
+        register_request = start_register(self._client.app_id)
+        self._memstore.store(self._client.id, user_id,
+                             register_request.challenge,
+                             {'request': register_request})
 
         # SignRequest[]
         sign_requests = []
         user = self._get_user(user_id)
         if user is not None:
             for dev in user.devices.values():
-                binding = U2FBinding.deserialize(dev.bind_data)
-                challenge = binding.make_challenge('check-only')
-                sign_requests.append(challenge.data)
+                sign_requests.append(
+                    start_authenticate(dev.bind_data, 'check-only'))
 
         # To support multiple versions, add more RegisterRequests.
-        return [enroll_data], sign_requests
+        return [register_request], sign_requests
 
     def register_complete(self, user_id, resp):
         memkey = resp.clientData.challenge
         data = self._memstore.retrieve(self._client.id, user_id, memkey)
-        u2f_enroll = U2FEnrollment.deserialize(data['request'])
-        bind = u2f_enroll.bind(resp)
+        bind, cert = complete_register(data['request'], resp,
+                                       self._client.valid_facets)
         user = self._get_or_create_user(user_id)
-        dev = user.add_device(bind.serialize())
+        dev = user.add_device(bind.json, cert)
         log.info('User: "%s/%s" - Device registered: "%s"' % (
             self._client.name, user_id, dev.handle))
         return dev.handle
@@ -128,29 +127,28 @@ class U2FController(object):
         challenges = {}
         rand = rand_bytes(32)
         for handle, dev in user.devices.items():
-            binding = U2FBinding.deserialize(dev.bind_data)
-            challenge = binding.make_challenge(rand)
-            sign_requests.append(challenge.data)
+            challenge = start_authenticate(dev.bind_data, rand)
+            sign_requests.append(challenge)
             challenges[handle] = {
-                'keyHandle': challenge.data.keyHandle,
-                'challenge': challenge.serialize()
+                'keyHandle': challenge.keyHandle,
+                'challenge': challenge
             }
-        self._memstore.store(self._client.id, user_id, rand, {
-            'challenges': challenges
-        })
+        self._memstore.store(self._client.id, user_id, rand, challenges)
         return sign_requests
 
     def authenticate_complete(self, user_id, resp):
         memkey = resp.clientData.challenge
-        stored = self._memstore.retrieve(self._client.id, user_id, memkey)
+        challenges = self._memstore.retrieve(self._client.id, user_id, memkey)
         user = self._get_user(user_id)
-        for handle, data in stored['challenges'].items():
+        for handle, data in challenges.items():
             if data['keyHandle'] == resp.keyHandle:
                 dev = user.devices[handle]
-                binding = U2FBinding.deserialize(dev.bind_data)
-                challenge = U2FChallenge.deserialize(binding,
-                                                     data['challenge'])
-                challenge.validate(resp)
+                verify_authenticate(
+                    dev.bind_data,
+                    data['challenge'],
+                    resp,
+                    self._client.valid_facets
+                )
                 dev.authenticated_at = datetime.now()
                 return handle
         else:

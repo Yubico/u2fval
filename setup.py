@@ -54,7 +54,7 @@ setup(
     setup_requires=['nose>=1.0'],
     data_files=[('/etc/yubico/u2f-val',
                  ['conf/u2f-val.conf', 'conf/logging.conf'])],
-    install_requires=['python-u2flib-server', 'SQLAlchemy', 'python-memcached',
+    install_requires=['python-u2flib-server>=3.0', 'SQLAlchemy', 'python-memcached',
                       'WebOb'],
     test_suite='nose.collector',
     tests_require=[''],
