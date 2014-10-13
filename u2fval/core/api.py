@@ -53,8 +53,7 @@ class U2FServerApplication(object):
     def __call__(self, request):
         client_name = request.environ.get('REMOTE_USER')
         if not client_name:
-            raise json_error(exc.HTTPNotFound('Client does not exist: %s'
-                                              % client_name))
+            raise json_error(exc.HTTPNotFound('Client not specified'))
         try:
             resp = self.client(request, client_name)
             if not isinstance(resp, Response):
