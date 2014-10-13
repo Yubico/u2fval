@@ -38,6 +38,7 @@ class custom_sdist(sdist):
         with open(target, 'w') as target_f:
             with open(source, 'r') as source_f:
                 target_f.write(source_f.read())
+        os.chmod(target, 0600)
         sdist.run(self)
         os.remove(target)
 
