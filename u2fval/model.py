@@ -22,6 +22,7 @@ from sqlalchemy.orm import relationship, backref, object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from uuid import uuid4
 from datetime import datetime
+from hashlib import sha1
 import json
 
 
@@ -58,7 +59,7 @@ class User(Base):
                                        name='_client_user_uc'),)
 
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
-    name = Column(String(32), nullable=False)
+    name = Column(String(40), nullable=False)
     client_id = Column(Integer, ForeignKey('clients.id'))
     client = relationship(Client, backref=backref('users'))
     devices = relationship(
@@ -76,7 +77,10 @@ class User(Base):
         cascade='all, delete-orphan')
 
     def __init__(self, name):
-        self.name = name
+        if len(name) > 40:
+            self.name = sha1(name).hexdigest()
+        else:
+            self.name = name
 
     def add_device(self, bind_data, cert, properties=None):
         certificate = object_session(self).query(Certificate) \

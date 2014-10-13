@@ -33,22 +33,22 @@ class U2FController(object):
         self._client = session.query(Client) \
             .filter(Client.name == client_name).one()
 
-    def _get_user(self, user_id):
+    def _get_user(self, username):
         return self._session.query(User) \
             .filter(User.client_id == self._client.id) \
-            .filter(User.name == user_id).first()
+            .filter(User.name == username).first()
 
     def _get_device(self, handle):
         return self._session.query(Device).join(Device.user) \
             .filter(User.client_id == self._client.id) \
             .filter(Device.handle == handle).first()
 
-    def _get_or_create_user(self, user_id):
-        user = self._get_user(user_id)
+    def _get_or_create_user(self, username):
+        user = self._get_user(username)
         if user is None:
-            user = User(user_id)
+            user = User(username)
             self._client.users.append(user)
-            log.info('User created: "%s/%s"' % (self._client.name, user_id))
+            log.info('User created: "%s/%s"' % (self._client.name, username))
         return user
 
     @property
@@ -63,22 +63,22 @@ class U2FController(object):
             }]
         }
 
-    def delete_user(self, user_id):
-        user = self._get_user(user_id)
+    def delete_user(self, username):
+        user = self._get_user(username)
         if user is not None:
             self._session.delete(user)
-            log.info('User deleted: "%s/%s"' % (self._client.name, user_id))
+            log.info('User deleted: "%s/%s"' % (self._client.name, username))
 
-    def register_start(self, user_id):
+    def register_start(self, username):
         # RegisterRequest
         register_request = start_register(self._client.app_id)
-        self._memstore.store(self._client.id, user_id,
+        self._memstore.store(self._client.id, username,
                              register_request.challenge,
                              {'request': register_request})
 
         # SignRequest[]
         sign_requests = []
-        user = self._get_user(user_id)
+        user = self._get_user(username)
         if user is not None:
             for dev in user.devices.values():
                 sign_requests.append(
@@ -87,15 +87,15 @@ class U2FController(object):
         # To support multiple versions, add more RegisterRequests.
         return [register_request], sign_requests
 
-    def register_complete(self, user_id, resp):
+    def register_complete(self, username, resp):
         memkey = resp.clientData.challenge
-        data = self._memstore.retrieve(self._client.id, user_id, memkey)
+        data = self._memstore.retrieve(self._client.id, username, memkey)
         bind, cert = complete_register(data['request'], resp,
                                        self._client.valid_facets)
-        user = self._get_or_create_user(user_id)
+        user = self._get_or_create_user(username)
         dev = user.add_device(bind.json, cert)
         log.info('User: "%s/%s" - Device registered: "%s"' % (
-            self._client.name, user_id, dev.handle))
+            self._client.name, username, dev.handle))
         return dev.handle
 
     def unregister(self, handle):
@@ -108,27 +108,27 @@ class U2FController(object):
         dev = self._get_device(handle)
         dev.properties.update(props)
 
-    def _do_get_descriptor(self, user_db_id, handle, filter):
+    def _do_get_descriptor(self, user_id, handle, filter):
         dev = self._session.query(Device) \
-            .filter(Device.user_id == user_db_id) \
+            .filter(Device.user_id == user_id) \
             .filter(Device.handle == handle).first()
         if dev is None:
             raise ValueError('No device matches descriptor: %s' % handle)
         return dev.get_descriptor(filter)
 
-    def get_descriptor(self, user_id, handle, filter=None):
-        user = self._get_user(user_id)
+    def get_descriptor(self, username, handle, filter=None):
+        user = self._get_user(username)
         return self._do_get_descriptor(user.id, handle, filter)
 
-    def get_descriptors(self, user_id, filter=None):
-        user = self._get_user(user_id)
+    def get_descriptors(self, username, filter=None):
+        user = self._get_user(username)
         if user is None:
             return []
-        return [d.get_descriptor(user_id, filter)
+        return [d.get_descriptor(username, filter)
                 for d in user.devices.values()]
 
-    def authenticate_start(self, user_id, invalidate=False):
-        user = self._get_user(user_id)
+    def authenticate_start(self, username, invalidate=False):
+        user = self._get_user(username)
         if user is None:
             return []
 
@@ -142,13 +142,13 @@ class U2FController(object):
                 'keyHandle': challenge.keyHandle,
                 'challenge': challenge
             }
-        self._memstore.store(self._client.id, user_id, rand, challenges)
+        self._memstore.store(self._client.id, username, rand, challenges)
         return sign_requests
 
-    def authenticate_complete(self, user_id, resp):
+    def authenticate_complete(self, username, resp):
         memkey = resp.clientData.challenge
-        challenges = self._memstore.retrieve(self._client.id, user_id, memkey)
-        user = self._get_user(user_id)
+        challenges = self._memstore.retrieve(self._client.id, username, memkey)
+        user = self._get_user(username)
         for handle, data in challenges.items():
             if data['keyHandle'] == resp.keyHandle:
                 dev = user.devices[handle]
