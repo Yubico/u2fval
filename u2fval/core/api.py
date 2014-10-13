@@ -64,7 +64,8 @@ class U2FServerApplication(object):
         except Exception as e:
             self._session.rollback()
             if isinstance(e, exc.HTTPException):
-                e = json_error(e)
+                if e.content_type != 'application/json':
+                    e = json_error(e)
             else:
                 e = json_error(exc.HTTPServerError(e.message))
             raise e
@@ -156,8 +157,8 @@ class U2FServerApplication(object):
                 return exc.HTTPNoContent()
             else:
                 raise exc.HTTPMethodNotAllowed
-        except ValueError:
-            raise exc.HTTPNotFound('')
+        except ValueError as e:
+            raise exc.HTTPNotFound(e.message)
 
 
 def create_application(settings):
