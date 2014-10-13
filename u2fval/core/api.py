@@ -25,6 +25,18 @@ import json
 __all__ = ['create_application']
 
 
+def json_error(e, message=None, code=None):
+    if type(e) == type:
+        e = e()
+    if code is None:
+        code = e.status_code
+    if message is None:
+        message = e.message
+    e.content_type = 'application/json'
+    e.body = json.dumps({'errorCode': code, 'errorMessage': message})
+    return e
+
+
 def parse_filter(value):
     if value is not None:
         return value.split(',')
@@ -41,16 +53,21 @@ class U2FServerApplication(object):
     def __call__(self, request):
         client_name = request.environ.get('REMOTE_USER')
         if not client_name:
-            raise exc.HTTPNotFound
+            raise json_error(exc.HTTPNotFound('Client does not exist: %s'
+                                              % client_name))
         try:
             resp = self.client(request, client_name)
             if not isinstance(resp, Response):
                 resp = Response(json.dumps(resp),
                                 content_type='application/json')
             return resp
-        except:
+        except Exception as e:
             self._session.rollback()
-            raise
+            if isinstance(e, exc.HTTPException):
+                e = json_error(e)
+            else:
+                e = json_error(exc.HTTPServerError(e.message))
+            raise e
         finally:
             self._session.commit()
 
@@ -140,7 +157,7 @@ class U2FServerApplication(object):
             else:
                 raise exc.HTTPMethodNotAllowed
         except ValueError:
-            raise exc.HTTPNotFound
+            raise exc.HTTPNotFound('')
 
 
 def create_application(settings):
