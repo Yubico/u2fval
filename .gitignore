@@ -5,4 +5,4 @@ dist/
 .ropeproject/
 MANIFEST
 ChangeLog
-conf/u2f-val.conf
+conf/u2fval.conf

@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 SETTINGS_FILE = os.getenv('U2FVAL_SETTINGS', os.path.join(
-                          '/etc/yubico/u2f-val/u2f-val.conf'))
+                          '/etc/yubico/u2fval/u2fval.conf'))
 LOG_CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(SETTINGS_FILE)),
                                'logging.conf')
 

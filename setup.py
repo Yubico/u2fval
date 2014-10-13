@@ -15,9 +15,9 @@
 
 from setuptools import setup
 from setuptools.command.sdist import _sdist as sdist
-from os import path
 from release import release
 import re
+import os
 
 VERSION_PATTERN = re.compile(r"(?m)^__version__\s*=\s*['\"](.+)['\"]$")
 
@@ -33,12 +33,13 @@ def get_version():
 class custom_sdist(sdist):
     def run(self):
         print "copying default settings..."
-        source = path.abspath('u2fval/default_settings.py')
-        target = path.abspath('conf/u2f-val.conf')
+        source = os.path.abspath('u2fval/default_settings.py')
+        target = os.path.abspath('conf/u2fval.conf')
         with open(target, 'w') as target_f:
             with open(source, 'r') as source_f:
                 target_f.write(source_f.read())
         sdist.run(self)
+        os.remove(target)
 
 
 setup(
@@ -50,12 +51,12 @@ setup(
     maintainer_email='ossmaint@yubico.com',
     url='https://github.com/Yubico/u2fval',
     packages=['u2fval', 'u2fval.core', 'u2fval.client'],
-    scripts=['scripts/u2f-val'],
+    scripts=['scripts/u2fval'],
     setup_requires=['nose>=1.0'],
-    data_files=[('/etc/yubico/u2f-val',
-                 ['conf/u2f-val.conf', 'conf/logging.conf'])],
-    install_requires=['python-u2flib-server>=3.0', 'SQLAlchemy', 'python-memcached',
-                      'WebOb'],
+    data_files=[('/etc/yubico/u2fval',
+                 ['conf/u2fval.conf', 'conf/logging.conf'])],
+    install_requires=['python-u2flib-server>=3.0', 'SQLAlchemy',
+                      'python-memcached', 'WebOb'],
     test_suite='nose.collector',
     tests_require=[''],
     cmdclass={'release': release, 'sdist': custom_sdist},
