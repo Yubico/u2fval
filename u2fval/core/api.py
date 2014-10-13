@@ -101,7 +101,7 @@ class U2FServerApplication(object):
             controller.set_props(handle, data.properties)
 
             properties = parse_filter(request.params.get('filter'))
-            return controller.get_descriptor(handle, properties)
+            return controller.get_descriptor(user_id, handle, properties)
         else:
             raise exc.HTTPMethodNotAllowed
 
@@ -121,23 +121,26 @@ class U2FServerApplication(object):
             controller.set_props(handle, data.properties)
 
             properties = parse_filter(request.params.get('filter'))
-            return controller.get_descriptor(handle, properties)
+            return controller.get_descriptor(user_id, handle, properties)
         else:
             raise exc.HTTPMethodNotAllowed
 
     def device(self, request, controller, user_id, handle):
-        if request.method == 'GET':
-            properties = parse_filter(request.params.get('filter'))
-            return controller.get_descriptor(handle, properties)
-        elif request.method == 'POST':
-            props = json.loads(request.body)
-            controller.set_props(handle, props)
-            return exc.HTTPNoContent()
-        elif request.method == 'DELETE':
-            controller.unregister(handle)
-            return exc.HTTPNoContent()
-        else:
-            raise exc.HTTPMethodNotAllowed
+        try:
+            if request.method == 'GET':
+                properties = parse_filter(request.params.get('filter'))
+                return controller.get_descriptor(user_id, handle, properties)
+            elif request.method == 'POST':
+                props = json.loads(request.body)
+                controller.set_props(handle, props)
+                return exc.HTTPNoContent()
+            elif request.method == 'DELETE':
+                controller.unregister(handle)
+                return exc.HTTPNoContent()
+            else:
+                raise exc.HTTPMethodNotAllowed
+        except ValueError:
+            raise exc.HTTPNotFound
 
 
 def create_application(settings):

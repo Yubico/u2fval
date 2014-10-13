@@ -108,15 +108,24 @@ class U2FController(object):
         dev = self._get_device(handle)
         dev.properties.update(props)
 
-    def get_descriptor(self, handle, filter=None):
-        dev = self._session.query(Device).filter(Device.handle == handle).one()
+    def _do_get_descriptor(self, user_db_id, handle, filter):
+        dev = self._session.query(Device) \
+            .filter(Device.user_id == user_db_id) \
+            .filter(Device.handle == handle).first()
+        if dev is None:
+            raise ValueError('No device matches descriptor: %s' % handle)
         return dev.get_descriptor(filter)
+
+    def get_descriptor(self, user_id, handle, filter=None):
+        user = self._get_user(user_id)
+        return self._do_get_descriptor(user.id, handle, filter)
 
     def get_descriptors(self, user_id, filter=None):
         user = self._get_user(user_id)
         if user is None:
             return []
-        return [d.get_descriptor(filter) for d in user.devices.values()]
+        return [d.get_descriptor(user_id, filter)
+                for d in user.devices.values()]
 
     def authenticate_start(self, user_id, invalidate=False):
         user = self._get_user(user_id)
