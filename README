@@ -1,3 +1,39 @@
 == Yubico U2F Validation Server ==
 The Yubico U2F Validation Server (u2fval) is a server that provides U2F
 registration and authentication through a simple JSON based REST API.
+
+=== Configuration ===
+Configuration is kept in /etc/yubico/u2fval/u2fval.conf, see the default
+configuration file for more information.
+
+The Yubico U2F Validation Server needs an SQL database to work. Optionally a
+memcached server can be used to store transient data which doesn't need to be
+persisted to the database (if not available this data will be stored in the
+main database). Once the configuration file has been configured with database
+credentials, the database can be initialized by running the following command:
+
+  u2fval db init
+
+=== API Clients ===
+To be able to use the server, a client needs to be created. This is done using
+the *client add* subcommand of the *u2fval* command line program. For example:
+
+  u2fval client create example \
+    -a https://example.com/app-identity.json \
+    -f https://example.com
+
+==== Authenticating Clients ====
+Each client request needs to be authenticated. This authentication is outside
+of the scope of the Yubico U2F Validation Server and can be handled by the
+webserver or some WSGI middleware. Once authenticated, the client name should
+be set in the REMOTE_USER server environment variable.
+
+=== Deployment ===
+The server can either be run standalone (intended for testing purposes) using
+the *u2fval run* command, or be hosted by any WSGI capable web server, such as
+Apache with mod_wsgi enabled.
+
+=== Accessing the Server ===
+Once the server is set up and at least one client has been created, the client
+can access the server via the REST API. Find the API documentation inthe doc/
+directory.
