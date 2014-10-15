@@ -16,7 +16,7 @@ credentials, the database can be initialized by running the following command:
 
 === API Clients ===
 To be able to use the server, a client needs to be created. This is done using
-the *client add* subcommand of the *u2fval* command line program. For example:
+the *u2fval client create* command. For example:
 
   u2fval client create example \
     -a https://example.com/app-identity.json \
