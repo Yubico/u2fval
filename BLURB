@@ -2,6 +2,6 @@ Author: Yubico
 Basename: u2fval
 Homepage: https://developers.yubico.com/u2fval/
 License: BSD-2-Clause
-Name: U2F Validation Server
+Name: Yubico U2F Validation Server
 Project: u2fval
 Summary: Python based U2F Validation Server
