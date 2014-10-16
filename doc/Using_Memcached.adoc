@@ -1,1 +1,26 @@
 == Using Memcached ==
+Memcached use is completely optional. By default, the Yubico U2F Validation
+Server does not use Memcached, and you do not need to install or configure it.
+
+=== Why use Memcached? ===
+The u2fval server deals with a lot of short-lived data. Each U2F registration
+or authentication requires some state about the request to be stored for a
+short period of time, until the client responds to complete the request. By
+default, this is stored in the database. By enabling u2fval to use a Memcached
+server, this data is instead stored in memory, which is more performant.
+
+=== Installation ===
+Refer to the https://memcached.org[Memcached documentation] for instructions on
+setting up Memecached on your platform. On Ubuntu this is installed using:
+
+  # apt-get install memcached
+
+=== Configuration ===
+To configure the Yubico U2F Validation Server to use Memcached, edit the
+/etc/yubico/u2fval/u2fval.conf file and change the USE_MEMCACHED variable to be
+True instead of the default of False. If the Memcached server is running on a
+non-standard port, or on a different machine, you will have to modify the
+MEMCACHED_SERVERS setting.
+
+Once configured you will need to restart the u2fval server for the changes to
+take effect.
