@@ -1,0 +1,91 @@
+== Apache Deployment ==
+The Yubico U2F Validation Server is designed as a WSGI module, and should run
+under any WSGI capable web server. This document describes one possible setup
+for running it under the Apache2 Web Server, using mod_wsgi.
+
+=== Prerequisites ===
+Before starting, it is assumed that you have installed u2fval and configured it
+with a compatible SQL database (see link:Database_Setup.adoc[Database Setup]).
+
+=== Installation ===
+Refer to the http://httpd.apache.org[Apache Web Server documentation] for
+instructions on setting up the Apache Web Server on your platform. This
+document assumes you are running Ubuntu 14.04, and some of the commands might
+be slightly different on other platforms. To install Apache and mod_wsgi (as
+well as some utilities that we will be using) on Ubuntu, run the following
+command:
+
+  # apt-get install apache2 apache2-utils libapache2-mod-wsgi
+
+This should automatically enable mod_wsgi, which you can confirm bu running:
+
+  # a2query -m wsgi
+
+...which should print something along the lines of:
+
+  wsgi (enabled by maintainer script)
+
+You will also need to enable mod_auth_digest, as we will be using
+http://httpd.apache.org/docs/2.2/mod/mod_auth_digest.html[HTTP Digest authentication].
+To enable it, run:
+
+  # a2enmod auth_digest
+
+=== Configuration ===
+Create the file: /etc/apache2/conf-available/u2fval.conf and add the following
+content to it:
+[source,xml]
+----
+<IfModule mod_wsgi.c>
+  WSGIScriptAlias /wsapi/u2fval /usr/local/lib/python2.7/dist-packages/u2fval/wsgi.py
+  # Needed since M2Crypto sometimes deadlocks without it:
+  WSGIApplicationGroup %{GLOBAL}
+
+  <Location /wsapi/u2fval/>
+     AuthType Digest
+     AuthName "u2fval"
+     AuthUserFile /etc/yubico/u2fval/clients.htdigest
+     Require valid-user
+  </Location>
+</IfModule>
+----
+
+Depending on your installation of u2fval, the location of the wsgi.py file may
+differ.
+
+The above configuration points out an AuthUserFile which does not yet exist.
+This is where client credentials will be stored, so let's create the file and
+add our first client now:
+
+  # htdigest -c /etc/yubico/u2fval/clients.htdigest "u2fval" testclient
+
+You will now be prompted for a password for the client. Once entered, the
+client can be authenticated using the _testclient_ username, with the password
+you just assigned. To add more users just run the same command as above, but
+without the -c argument (which is only needed to create the file).
+
+For each created user you also need to create the corresponding client in the
+u2fval database. This is done by using the u2fval command line tool:
+
+  # u2fval client create testclient -a http://example.com -f http://example.com
+
+The client name _testclient_ above needs to match the name used for the
+htdigest command. The -a argument defines the application ID of the client, and
+the -f argument sets the valid facets for the client (for multiple facets,
+separate them with spaces). For more information about these parameters,
+http://developers-beta.yubico.com/U2F/[click here]. If you need to change these
+settings later you can use the u2fval tool (run "u2fval -h" for usage). 
+
+Now all that remains is to activate the Apache configuration:
+
+  # a2enconf u2fval
+  # service apache2 reload
+
+You should now be all set! You can verify that the server works by running a
+request against it as the client you just created:
+
+  $ curl --digest -u'testclient:password' http://localhost/wsapi/u2fval/
+
+Alter the above command to match the username and password you set for the
+client. If successful the output should contain some information about the
+client, such as the application ID and valid facets.
