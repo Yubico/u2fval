@@ -151,7 +151,10 @@ class U2FServerApplication(object):
                 handle = controller.authenticate_complete(
                     user_id, data.authenticateResponse)
             except KeyError:
-                raise exc.HTTPBadRequest
+                raise exc.HTTPBadRequest('Malformed request')
+            except ValueError as e:
+                log.exception('Error in authenticate')
+                raise exc.HTTPBadRequest(e.message)
             controller.set_props(handle, data.properties)
 
             properties = parse_filter(request.params.get('filter'))

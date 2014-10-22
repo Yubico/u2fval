@@ -63,7 +63,9 @@ class DBStore(object):
         transaction_id = transaction_id.encode('hex')
         self._delete_expired()
         transaction = self._session.query(Transaction) \
-            .filter(Transaction.transaction_id == transaction_id).one()
+            .filter(Transaction.transaction_id == transaction_id).first()
+        if transaction is None:
+            raise ValueError('Invalid transaction')
         if transaction.user.name != user_id or \
                 transaction.user.client_id != client_id:
             raise ValueError('Transaction not valid for user_id: %s' % user_id)
