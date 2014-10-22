@@ -32,8 +32,10 @@ from u2fval.core.jsobjects import (
 from webob.dec import wsgify
 from webob import exc, Response
 import json
+import logging
 
 
+log = logging.getLogger(__name__)
 __all__ = ['create_application']
 
 
@@ -79,6 +81,7 @@ class U2FServerApplication(object):
                 if e.content_type != 'application/json':
                     e = json_error(e)
             else:
+                log.exception('Server error')
                 e = json_error(exc.HTTPServerError(e.message))
             raise e
         finally:
@@ -86,7 +89,8 @@ class U2FServerApplication(object):
 
     def client(self, request, client_name):
         user_id = request.path_info_pop()
-        controller = U2FController(self._session, self._memstore, client_name)
+        controller = U2FController(self._session, self._memstore, client_name,
+                                   self._cert_verifier)
         if not user_id:
             if request.method == 'GET':
                 return controller.get_trusted_facets()

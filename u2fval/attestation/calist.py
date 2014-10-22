@@ -51,13 +51,13 @@ class CAListVerifier(object):
         existing.append(ca)
         self._ca_certs[subject] = existing
 
-    def load_ca_from_pem(self, pem):
+    def add_ca_from_pem(self, pem):
         self.add_ca(X509.load_cert_string(pem))
 
     def add_ca_dir(self, dirname):
         for fname in os.listdir(dirname):
             try:
-                with open(fname, 'r') as f:
+                with open(os.path.join(dirname, fname), 'r') as f:
                     self.add_ca_from_pem(f.read())
             except:
                 log.exception('Unable to load CA cert from file: %s', fname)
