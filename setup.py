@@ -25,11 +25,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.sdist import _sdist as sdist
 from release import release
 import re
 import os
+import glob
 
 VERSION_PATTERN = re.compile(r"(?m)^__version__\s*=\s*['\"](.+)['\"]$")
 
@@ -64,11 +65,13 @@ setup(
     maintainer_email='ossmaint@yubico.com',
     url='https://github.com/Yubico/u2fval',
     license='BSD 2 clause',
-    packages=['u2fval', 'u2fval.core', 'u2fval.client'],
+    packages=find_packages(),
     scripts=['scripts/u2fval'],
     setup_requires=['nose>=1.0'],
-    data_files=[('/etc/yubico/u2fval',
-                 ['conf/u2fval.conf', 'conf/logging.conf'])],
+    data_files=[
+        ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
+        ('/etc/yubico/u2fval/cacerts', glob.glob('conf/cacerts/*'))
+    ],
     install_requires=['python-u2flib-server>=3.0', 'SQLAlchemy',
                       'python-memcached', 'WebOb'],
     test_suite='nose.collector',

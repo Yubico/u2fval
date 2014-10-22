@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from sqlalchemy import (Column, Integer, String, Text, ForeignKey, Sequence,
-                        DateTime, UniqueConstraint)
+                        DateTime, BigInteger, UniqueConstraint)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -134,6 +134,7 @@ class Device(Base):
     certificate = relationship('Certificate')
     created_at = Column(DateTime, default=datetime.utcnow)
     authenticated_at = Column(DateTime)
+    counter = Column(BigInteger)
     _properties = relationship(
         'Property',
         backref='device',

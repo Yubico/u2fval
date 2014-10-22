@@ -3,4 +3,4 @@ include NEWS
 include ChangeLog
 include release.py
 include doc/*
-include conf/*
+recursive-include conf *

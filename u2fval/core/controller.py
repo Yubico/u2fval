@@ -39,11 +39,12 @@ log = logging.getLogger(__name__)
 
 class U2FController(object):
 
-    def __init__(self, session, memstore, client_name):
+    def __init__(self, session, memstore, client_name, cert_verifier):
         self._session = session
         self._memstore = memstore
         self._client = session.query(Client) \
             .filter(Client.name == client_name).one()
+        self._cert_verifier = cert_verifier
 
     def _get_user(self, username):
         return self._session.query(User) \
@@ -104,6 +105,7 @@ class U2FController(object):
         data = self._memstore.retrieve(self._client.id, username, memkey)
         bind, cert = complete_register(data['request'], resp,
                                        self._client.valid_facets)
+        self._cert_verifier(cert)
         user = self._get_or_create_user(username)
         dev = user.add_device(bind.json, cert)
         log.info('User: "%s/%s" - Device registered: "%s"' % (
@@ -165,14 +167,18 @@ class U2FController(object):
         for handle, data in challenges.items():
             if data['keyHandle'] == resp.keyHandle:
                 dev = user.devices[handle]
-                verify_authenticate(
+                counter, presence = verify_authenticate(
                     dev.bind_data,
                     data['challenge'],
                     resp,
                     self._client.valid_facets
                 )
-                dev.authenticated_at = datetime.now()
-                return handle
+                if counter > dev.counter:
+                    dev.counter = counter
+                    dev.authenticated_at = datetime.now()
+                    return handle
+                # TODO: We might want to disable the device here.
+                raise ValueError('Device counter not incremented!')
         else:
             raise ValueError('No device found for keyHandle: %s' %
                              resp.keyHandle)

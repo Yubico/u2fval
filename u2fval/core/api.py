@@ -57,9 +57,10 @@ def parse_filter(value):
 
 class U2FServerApplication(object):
 
-    def __init__(self, session, memstore):
+    def __init__(self, session, memstore, cert_verifier):
         self._session = session
         self._memstore = memstore
+        self._cert_verifier = cert_verifier
 
     @wsgify
     def __call__(self, request):
@@ -180,6 +181,15 @@ def create_application(settings):
     Session = sessionmaker(bind=engine)
     session = Session()
 
+    if settings['disable_attestation']:
+        # Dummy verifier that does nothing.
+        verifier = lambda x: None
+    else:
+        from u2fval.attestation.calist import CAListVerifier
+        verifier = CAListVerifier()
+        for path in settings['ca_certs']:
+            verifier.add_ca_dir(path)
+
     if settings['mc']:
         from u2fval.core.transactionmc import MemcachedStore
         memstore = MemcachedStore(settings['mc_hosts'])
@@ -187,4 +197,4 @@ def create_application(settings):
         from u2fval.core.transactiondb import DBStore
         memstore = DBStore(session)
 
-    return U2FServerApplication(session, memstore)
+    return U2FServerApplication(session, memstore, verifier)

@@ -45,7 +45,9 @@ LOG_CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(SETTINGS_FILE)),
 VALUES = {
     'DATABASE_CONFIGURATION': 'db',
     'USE_MEMCACHED': 'mc',
-    'MEMCACHED_SERVERS': 'mc_hosts'
+    'MEMCACHED_SERVERS': 'mc_hosts',
+    'CA_CERTS': 'ca_certs',
+    'DISABLE_ATTESTATION_VERIFICATION': 'disable_attestation'
 }
 
 
