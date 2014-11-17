@@ -192,11 +192,22 @@ Returns properties for the device, optionally filtered.
 DeviceDescriptor
 
 ==== +HTTP POST+
-Sets properties for the device.
+Sets properties for the device, then returns the devices new properties,
+optionally filtered.
+
+===== Query parameters
+*filter*=string[,string ...]::
+  (_optional_)
+  When set, filter the properties returned by the names in the filter string.
 
 ===== Client Request
 _Dictionary_
 
+===== Server Response
+DeviceDescriptor
+
 ==== +HTTP DELETE+
 Removes the device registration.
 
+===== Server Response
+HTTP 204 No Content

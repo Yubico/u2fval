@@ -170,7 +170,8 @@ class U2FServerApplication(object):
             elif request.method == 'POST':
                 props = json.loads(request.body)
                 controller.set_props(handle, props)
-                return exc.HTTPNoContent()
+                properties = parse_filter(request.params.get('filter'))
+                return controller.get_descriptor(user_id, handle, properties)
             elif request.method == 'DELETE':
                 controller.unregister(handle)
                 return exc.HTTPNoContent()
