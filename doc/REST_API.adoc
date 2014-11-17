@@ -113,7 +113,7 @@ _https://example.com/johndoe_
 Returns a list of device handles, with their properties, optionally filtered.
 
 ===== Query parameters
-*filter*=string[,string ...]::
+*filter*=[string[,string ...]]::
   (_optional_)
   When set, filter the properties returned by the names in the filter string.
 
@@ -137,7 +137,7 @@ _RegisterRequestData_
 ==== +HTTP POST+
 
 ===== Query parameters
-*filter*=string[,string ...]::
+*filter*=[string[,string ...]]::
   (_optional_)
   When set, filter the properties returned by the names in the filter string.
 
@@ -165,7 +165,7 @@ Completes the authentication, updating and returning properties for the device
 which signed the challenge.
 
 ===== Query parameters
-*filter*=string[,string ...]::
+*filter*=[string[,string ...]]::
   (_optional_)
   When set, filter the properties returned by the names in the filter string.
 
@@ -184,7 +184,7 @@ _https://example.com/johndoe/0f0f0f0f0f...0f_
 Returns properties for the device, optionally filtered.
 
 ===== Query parameters
-*filter*=string[,string ...]::
+*filter*=[string[,string ...]]::
   (_optional_)
   When set, filter the properties returned by the names in the filter string.
 
@@ -196,7 +196,7 @@ Sets properties for the device, then returns the devices new properties,
 optionally filtered.
 
 ===== Query parameters
-*filter*=string[,string ...]::
+*filter*=[string[,string ...]]::
   (_optional_)
   When set, filter the properties returned by the names in the filter string.
 
