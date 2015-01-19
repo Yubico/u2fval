@@ -13,16 +13,34 @@ specification are used.
 
 ==== Device Descriptor
 The DeviceDescriptor describes a registered U2F device. Each Device has a 
-unique handle used to identify the device, as well as a dictionary of key-value
-properties. A pre-defined set of these properties are set by the system and are
-read-only. Other than the pre-defined set, the client can store arbitrary data
-in these properties.
+unique handle used to identify the device, as well as fields showing when the
+device was registered (_created_) and last successfully used (_lastUsed_).
+When available, metadata about the device will be present in the _metadata_
+field, containing vendor and device information. This field will be omitted if
+no such metadata exists. Lastly, a dictionary of key-value _properties_ is
+available, which can be used by the client to store arbitrary data.
 
 [source,javascript]
 ----
 dictionary DeviceDescriptor {
   DOMString handle;
+  DOMString created;
+  DOMString lastUsed;
+  DeviceMetadata metadata;
   dictionary properties;
+};
+----
+
+==== DeviceMetadata
+The metadata provided in the DeviceDescriptor contains metadata about the
+device vendor as well as the device itself. The two contained fields
+(_VendorInfo_ and _Device_) are described link:missing.html[here].
+
+[source,javascript]
+----
+dictionary DeviceMetadata {
+  VendorInfo vendor;
+  Device device;
 };
 ----
 
