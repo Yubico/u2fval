@@ -11,14 +11,33 @@ In addition to these, the RegisterRequest, RegisterResponse,
 AuthenticationRequest, and AuthenticationResponse types from the U2F_V2
 specification are used.
 
+==== Error
+Whenever an API call results in an error, an Error object is returned. The
+errorCode determines the type of error, and the errorMessage gives a textual
+description of the error. If applicable to the specific error, additional data
+will be available in the errorData field.
+
+[source,javascript]
+----
+dictionary Error {
+  int errorCode;
+  DOMString errorMessage;
+  optional any errorData;
+}
+----
+
 ==== Device Descriptor
 The DeviceDescriptor describes a registered U2F device. Each Device has a 
 unique handle used to identify the device, as well as fields showing when the
 device was registered (_created_) and last successfully used (_lastUsed_).
 When available, metadata about the device will be present in the _metadata_
 field, containing vendor and device information. This field will be omitted if
-no such metadata exists. Lastly, a dictionary of key-value _properties_ is
-available, which can be used by the client to store arbitrary data.
+no such metadata exists. A dictionary of key-value _properties_ is available,
+which can be used by the client to store arbitrary data. Lastly, a boolean
+shows if the device has been marked as compromised. A compromised device cannot
+be used for authentication. The system will mark a device as compromised if it
+detects something which may indicate this, and a compromised device should be
+replaced.
 
 [source,javascript]
 ----
@@ -28,6 +47,7 @@ dictionary DeviceDescriptor {
   DOMString lastUsed;
   DeviceMetadata metadata;
   dictionary properties;
+  boolean compromised;
 };
 ----
 
