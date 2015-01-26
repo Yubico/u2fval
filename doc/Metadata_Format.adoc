@@ -1,0 +1,106 @@
+== U2F JSON metadata format specification
+Attestation and metadata is provided as +MetadataObjects+, as defined in this
+document. These objects might be stored as files in a file system (one object
+per file), a single file (containing a list of multiple objects), as data in a
+database, or any combination thereof.
+
+=== MetadataObject
+[source, javascript]
+----
+dictionary MetadataObject {
+  DOMString identifier;
+  unsigned long version;
+  DOMString[] trustedCertificates;
+  optional VendorInfo vendorInfo;
+  optional Device[]? devices;
+}
+----
+
+The metadata object is uniquely identified by the identifier property, which
+MUST be globally unique. The version property identifies the version of the
+object, with higher versions being newer. The trustedCertificates property
+consists of a list of PEM encoded certificates that are trusted for attestation
+certificate validation. Intermediate certificates may be present in the chain,
+between one of the trusted certificates and the attestation certificates, but
+how these certificates are provided is outside of the scope for this document.
+A certificate in the trustedCertificates list is trusted, and its own signature
+is not regarded (whether it be self-signed or not). The devices property is
+optional, and used to provide metadata about different device types.
+
+=== VendorInfo
+[source, javascript]
+----
+dictionary VendorInfo {
+  DOMString name;
+  DOMString url;
+  DOMString imageUrl;
+}
+----
+
+The vendor info object contains information about the vendor, such as name and
+URL. Additional fields may be added to provide more information.
+
+=== Device
+[source, javascript]
+----
+dictionary Device {
+  DOMString deviceId;
+  optional DOMString displayName;
+  optional DOMString imageUrl;
+  optional DOMString deviceUrl;
+  optional Selector[] selectors;
+}
+----
+
+The device object provides metadata for a U2F device. The deviceId is a unique
+identifier which can be used to update previously identified devices if the
+metadata changes. Additional fields may be added to provide more information.
+The selector is used to match a device object to a given attestation
+certificate. When not present, the device will match any certificate as long as
+it is trusted by one of the roots from the same metadata object.
+
+=== Selector
+[source, javascript]
+----
+dictionary Selector {
+  DOMString type;
+  optional any parameters;
+}
+----
+
+The selector object provides a way to match an attestation certificate against
+a device object. When present in a device object, each supported selector type
+is tested against the attestation certificate. If any of them match, the device
+matches. If none of the selectors match, the device does not match. An empty
+selectors list [], cannot be matched by any attestation certificate. However, a
+null or missing selectors field is matched by any certificate.
+
+==== Selector types
+The selector type is defined by the string in the type field. The parameters
+field is type dependent and can contain arbitrary data. 
+
+===== Fingerprint
+Match certificates by their SHA1 fingerprint.
+
+Type value::
+  +fingerprint+
+
+Parameters type::
+  +DOMString[]+ hex values of SHA1 fingerprints of attestation certificates to
+  match against.
+
+===== x509Extension
+Match certificates by their extensions.
+
+Type value::
+  +x509Extension+
+
+Parameters type::
+[source, javascript]
+----
+dictionary X509ExtensionParameters {
+  DOMString key;
+  optional DOMString value;
+}
+----
+
