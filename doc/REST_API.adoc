@@ -170,12 +170,7 @@ dictionary AuthenticateResponseData {
 _https://example.com/johndoe_
 
 ==== +HTTP GET+
-Returns a list of device handles, with their properties, optionally filtered.
-
-===== Query parameters
-*filter*=[string[,string ...]]::
-  (_optional_)
-  When set, filter the properties returned by the names in the filter string.
+Returns a list of device handles, with their properties.
 
 ===== Server response
 `DeviceDescriptor[]`
@@ -195,12 +190,6 @@ Initializes registration for the given user (all registered devices).
 `RegisterRequestData`
   
 ==== +HTTP POST+
-
-===== Query parameters
-*filter*=[string[,string ...]]::
-  (_optional_)
-  When set, filter the properties returned by the names in the filter string.
-
 Completes the registration, storing a new device associated with the user.
 
 ===== Client request body
@@ -224,11 +213,6 @@ Initializes authentication for the given user (all registered devices).
 Completes the authentication, updating and returning properties for the device
 which signed the challenge.
 
-===== Query parameters
-*filter*=[string[,string ...]]::
-  (_optional_)
-  When set, filter the properties returned by the names in the filter string.
-
 ===== Client request
 `AuthenticateResponseData`
 
@@ -241,24 +225,13 @@ which signed the challenge.
 _https://example.com/johndoe/0f0f0f0f0f...0f_
 
 ==== +HTTP GET+
-Returns properties for the device, optionally filtered.
-
-===== Query parameters
-*filter*=[string[,string ...]]::
-  (_optional_)
-  When set, filter the properties returned by the names in the filter string.
+Returns properties for the device.
 
 ===== Server Response
 `DeviceDescriptor`
 
 ==== +HTTP POST+
-Sets properties for the device, then returns the devices new properties,
-optionally filtered.
-
-===== Query parameters
-*filter*=[string[,string ...]]::
-  (_optional_)
-  When set, filter the properties returned by the names in the filter string.
+Sets properties for the device, then returns the devices (updated) properties.
 
 ===== Client Request
 `Dictionary`
