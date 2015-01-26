@@ -7,15 +7,16 @@ immutable. This user identification string is denoted userId in the API below.
 
 === JavaScript object type definitions
 The following JavaScript objects are used when interacting with the REST API.
-In addition to these, the RegisterRequest, RegisterResponse,
-AuthenticationRequest, and AuthenticationResponse types from the U2F_V2
+In addition to these, the `RegisterRequest`, `RegisterResponse`,
+`AuthenticationRequest`, and `AuthenticationResponse` types from the U2F_V2
 specification are used.
 
 ==== Error
-Whenever an API call results in an error, an Error object is returned. The
+Whenever an API call results in an error, an `Error` object is returned. The
 errorCode determines the type of error, and the errorMessage gives a textual
 description of the error. If applicable to the specific error, additional data
-will be available in the errorData field.
+will be available in the errorData field. The HTTP status code for an error is
+always a 4XX status code, such as `400 (Bad Request)` or `404 (Not Found)`.
 
 [source,javascript]
 ----
@@ -26,13 +27,34 @@ dictionary Error {
 }
 ----
 
+===== Error codes
+[options="header",cols="2,^1,20"]
+|==================================
+|Name             |Code|Description
+
+|BadInput         |10  |
+The arguments passed to the function are invalid.
+
+|NoEligableDevices|11  |
+The user has no eligable devices capable of performing the requested action.
+A `DeviceDescriptor[]` containing the users devices will be passed along with
+this error, as it is often desirable to handle a user with no registered
+devices differently from a user with devices that have been marked conpromised
+and therefore been disabled.
+
+|DeviceCompromised|12  |
+The requested action caused the server to determine that one of the users
+devices may be compromised, and has been disabled. The `DeviceDescriptor` in
+question is returned with the error.
+|=================================
+
 ==== Device Descriptor
-The DeviceDescriptor describes a registered U2F device. Each Device has a 
+The `DeviceDescriptor` describes a registered U2F device. Each Device has a 
 unique handle used to identify the device, as well as fields showing when the
-device was registered (_created_) and last successfully used (_lastUsed_).
-When available, metadata about the device will be present in the _metadata_
+device was registered (`created`) and last successfully used (`lastUsed`).
+When available, metadata about the device will be present in the `metadata`
 field, containing vendor and device information. This field will be omitted if
-no such metadata exists. A dictionary of key-value _properties_ is available,
+no such metadata exists. A dictionary of key-value `properties` is available,
 which can be used by the client to store arbitrary data. Lastly, a boolean
 shows if the device has been marked as compromised. A compromised device cannot
 be used for authentication. The system will mark a device as compromised if it
@@ -52,9 +74,9 @@ dictionary DeviceDescriptor {
 ----
 
 ==== DeviceMetadata
-The metadata provided in the DeviceDescriptor contains metadata about the
+The metadata provided in the `DeviceDescriptor` contains metadata about the
 device vendor as well as the device itself. The two contained fields
-(_VendorInfo_ and _Device_) are described link:missing.html[here].
+(`VendorInfo` and `Device`) are described link:missing.html[here].
 
 [source,javascript]
 ----
@@ -77,15 +99,15 @@ dictionary RegisterRequestData {
 ----
 
 ===== Members
-*authenticateRequests* of type _array_ of _AuthenticateRequest_::
+*authenticateRequests* of type `array` of `AuthenticateRequest`::
   A list of AuthenticateRequest dictionaries, one for each U2F device already
   registered by the user.
-*registerRequests* of type _array_ of _RegisterRequest_::
+*registerRequests* of type `array` of `RegisterRequest`::
   A list of RegisterRequest dictionaries, one for each protocol version that
   the server is willing to support.
 
 ==== RegisterResponseData
-The RegisterResponseData contains the RegisterResponse returned by a successful
+The `RegisterResponseData` contains the `RegisterResponse` returned by a successful
 call to the _register_ function of a FIDO client, as well as any properties to
 set, and names of properties to return, if the registration succeeds.
 
@@ -98,9 +120,9 @@ dictionary RegisterResponseData {
 ----
 
 ===== Members
-*registerResponse* of type _RegisterResponse_::
+*registerResponse* of type `RegisterResponse`::
   The RegisterResponse to return to the server for validation.
-*properties* of type _Dictionary_::
+*properties* of type `Dictionary`::
   A Dictionary of properties to set for the Device created upon successful
   validation of the RegisterResponse.
 
@@ -116,7 +138,7 @@ dictionaty AuthenticateRequestData {
 ----
 
 ===== Members
-*authenticateRequests* of type _array_ of _AuthenticateRequest_::
+*authenticateRequests* of type `array` of `AuthenticateRequest`::
   A list of AuthenticateRequest dictionaries, one for each previously
   registered U2F device for the user.
 
@@ -135,9 +157,9 @@ dictionary AuthenticateResponseData {
 ----
 
 ===== Members
-*authenticateResponse* of type _AuthenticateResponse_::
+*authenticateResponse* of type `AuthenticateResponse`::
   The AuthenticateResponse to return to the server for validation.
-*properties* of type _Dictionary_::
+*properties* of type `Dictionary`::
   A Dictionary of properties to set for the Device for which authentication is
   perfomed, if authentication succeeds.
 
@@ -156,7 +178,7 @@ Returns a list of device handles, with their properties, optionally filtered.
   When set, filter the properties returned by the names in the filter string.
 
 ===== Server response
-_DeviceDescriptor[]_
+`DeviceDescriptor[]`
 
 ==== +HTTP DELETE+
 Deletes all data associated with the user.
@@ -170,7 +192,7 @@ _https://example.com/johndoe/register_
 Initializes registration for the given user (all registered devices).
 
 ===== Server response
-_RegisterRequestData_
+`RegisterRequestData`
   
 ==== +HTTP POST+
 
@@ -182,10 +204,10 @@ _RegisterRequestData_
 Completes the registration, storing a new device associated with the user.
 
 ===== Client request body
-_RegisterResponseData_
+`RegisterResponseData`
 
 ===== Server response
-_DeviceDescriptor_
+`DeviceDescriptor`
 
 
 ==== /:userId/authenticate
@@ -196,7 +218,7 @@ _https://example.com/johndoe/authenticate_
 Initializes authentication for the given user (all registered devices).
 
 ===== Server response
-_AuthenticateRequestData_
+`AuthenticateRequestData`
 
 ==== +HTTP POST+
 Completes the authentication, updating and returning properties for the device
@@ -208,10 +230,10 @@ which signed the challenge.
   When set, filter the properties returned by the names in the filter string.
 
 ===== Client request
-_AuthenticateResponseData_
+`AuthenticateResponseData`
 
 ===== Server response
-_DeviceDescriptor_
+`DeviceDescriptor`
 
 
 ==== /:uid/:handle
@@ -227,7 +249,7 @@ Returns properties for the device, optionally filtered.
   When set, filter the properties returned by the names in the filter string.
 
 ===== Server Response
-DeviceDescriptor
+`DeviceDescriptor`
 
 ==== +HTTP POST+
 Sets properties for the device, then returns the devices new properties,
@@ -239,10 +261,10 @@ optionally filtered.
   When set, filter the properties returned by the names in the filter string.
 
 ===== Client Request
-_Dictionary_
+`Dictionary`
 
 ===== Server Response
-DeviceDescriptor
+`DeviceDescriptor`
 
 ==== +HTTP DELETE+
 Removes the device registration.
