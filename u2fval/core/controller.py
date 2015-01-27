@@ -122,25 +122,24 @@ class U2FController(object):
         dev = self._get_device(handle)
         dev.properties.update(props)
 
-    def _do_get_descriptor(self, user, handle, filter):
+    def _do_get_descriptor(self, user, handle):
         if user is not None:
             dev = self._session.query(Device) \
                 .filter(Device.user_id == user.id) \
                 .filter(Device.handle == handle).first()
         if user is None or dev is None:
             raise ValueError('No device matches descriptor: %s' % handle)
-        return dev.get_descriptor(filter)
+        return dev.get_descriptor()
 
-    def get_descriptor(self, username, handle, filter=None):
+    def get_descriptor(self, username, handle):
         user = self._get_user(username)
-        return self._do_get_descriptor(user, handle, filter)
+        return self._do_get_descriptor(user, handle)
 
-    def get_descriptors(self, username, filter=None):
+    def get_descriptors(self, username):
         user = self._get_user(username)
         if user is None:
             return []
-        return [d.get_descriptor(filter)
-                for d in user.devices.values()]
+        return [d.get_descriptor() for d in user.devices.values()]
 
     def authenticate_start(self, username, invalidate=False):
         user = self._get_user(username)
@@ -178,7 +177,8 @@ class U2FController(object):
                     dev.authenticated_at = datetime.now()
                     return handle
                 # TODO: We might want to disable the device here.
-                raise ValueError('Device counter not incremented!')
+                dev.compromised = True
+                raise ValueError('Device counter mismatch, device compromised!')
         else:
             raise ValueError('No device found for keyHandle: %s' %
                              resp.keyHandle)

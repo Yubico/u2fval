@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from setuptools import setup, find_packages
-from setuptools.command.sdist import _sdist as sdist
+from setuptools.command.sdist import sdist
 from release import release
 import re
 import os

@@ -51,12 +51,6 @@ def json_error(e, message=None, code=None):
     return e
 
 
-def parse_filter(value):
-    if value is not None:
-        return value.split(',')
-    return None
-
-
 class U2FServerApplication(object):
 
     def __init__(self, session, memstore, cert_verifier):
@@ -109,8 +103,7 @@ class U2FServerApplication(object):
                 return self.device(request, controller, user_id, page)
 
         if request.method == 'GET':
-            properties = parse_filter(request.params.get('filter'))
-            return controller.get_descriptors(user_id, properties)
+            return controller.get_descriptors(user_id)
         elif request.method == 'DELETE':
             controller.delete_user(user_id)
             return exc.HTTPNoContent()
@@ -134,8 +127,7 @@ class U2FServerApplication(object):
                 raise exc.HTTPBadRequest
             controller.set_props(handle, data.properties)
 
-            properties = parse_filter(request.params.get('filter'))
-            return controller.get_descriptor(user_id, handle, properties)
+            return controller.get_descriptor(user_id, handle)
         else:
             raise exc.HTTPMethodNotAllowed
 
@@ -157,21 +149,18 @@ class U2FServerApplication(object):
                 raise exc.HTTPBadRequest(e.message)
             controller.set_props(handle, data.properties)
 
-            properties = parse_filter(request.params.get('filter'))
-            return controller.get_descriptor(user_id, handle, properties)
+            return controller.get_descriptor(user_id, handle)
         else:
             raise exc.HTTPMethodNotAllowed
 
     def device(self, request, controller, user_id, handle):
         try:
             if request.method == 'GET':
-                properties = parse_filter(request.params.get('filter'))
-                return controller.get_descriptor(user_id, handle, properties)
+                return controller.get_descriptor(user_id, handle)
             elif request.method == 'POST':
                 props = json.loads(request.body)
                 controller.set_props(handle, props)
-                properties = parse_filter(request.params.get('filter'))
-                return controller.get_descriptor(user_id, handle, properties)
+                return controller.get_descriptor(user_id, handle)
             elif request.method == 'DELETE':
                 controller.unregister(handle)
                 return exc.HTTPNoContent()
