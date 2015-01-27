@@ -145,17 +145,15 @@ class U2FController(object):
 
     def authenticate_start(self, username, invalidate=False):
         user = self._get_user(username)
-        if user is None:
-            return []
+        if user is None or len(user.devices) == 0:
+            log.info('User "%s" has no devices registered' % username)
+            raise NoEligableDevicesException('No devices registered', [])
 
         sign_requests = []
         challenges = {}
         rand = rand_bytes(32)
-        devices = user.devices
-        if len(devices) == 0:
-            raise NoEligableDevicesException('No devices registered', [])
 
-        for handle, dev in devices.items():
+        for handle, dev in user.devices.items():
             if not dev.compromised:
                 challenge = start_authenticate(dev.bind_data, rand)
                 sign_requests.append(challenge)
@@ -167,7 +165,7 @@ class U2FController(object):
         if not sign_requests:
             raise NoEligableDevicesException(
                 'All devices compromised',
-                [d.get_descriptor() for d in devices.values()]
+                [d.get_descriptor() for d in user.devices.values()]
             )
         self._memstore.store(self._client.id, username, rand, challenges)
         return sign_requests

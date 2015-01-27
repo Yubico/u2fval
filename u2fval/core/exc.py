@@ -39,7 +39,8 @@ class U2fException(Exception):
     code = -1
 
     def __init__(self, message, data=None):
-        super(U2fException).__init__(message, data)
+        super(U2fException, self).__init__(message, data)
+        self.message = message
         self.data = data
 
     @property

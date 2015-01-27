@@ -29,6 +29,7 @@ from u2fval.core.controller import U2FController
 from u2fval.core.jsobjects import (
     RegisterRequestData, RegisterResponseData, AuthenticateRequestData,
     AuthenticateResponseData)
+from u2fval.core.exc import U2fException, BadInputException
 from webob.dec import wsgify
 from webob import exc, Response
 import json
@@ -39,16 +40,11 @@ log = logging.getLogger(__name__)
 __all__ = ['create_application']
 
 
-def json_error(e, message=None, code=None):
-    if type(e) == type:
-        e = e()
-    if code is None:
-        code = e.status_code
-    if message is None:
-        message = e.message
-    e.content_type = 'application/json'
-    e.body = json.dumps({'errorCode': code, 'errorMessage': message})
-    return e
+def u2f_error(e):
+    server_e = exc.HTTPBadRequest()
+    server_e.body = e.json
+    server_e.content_type = 'application/json'
+    return server_e
 
 
 class U2FServerApplication(object):
@@ -62,7 +58,7 @@ class U2FServerApplication(object):
     def __call__(self, request):
         client_name = request.environ.get('REMOTE_USER')
         if not client_name:
-            raise json_error(exc.HTTPNotFound('Client not specified'))
+            raise u2f_error(BadInputException('Client not specified'))
         try:
             resp = self.client(request, client_name)
             if not isinstance(resp, Response):
@@ -71,12 +67,13 @@ class U2FServerApplication(object):
             return resp
         except Exception as e:
             self._session.rollback()
-            if isinstance(e, exc.HTTPException):
-                if e.content_type != 'application/json':
-                    e = json_error(e)
+            if isinstance(e, U2fException):
+                e = u2f_error(e)
+            elif isinstance(e, exc.HTTPException):
+                pass
             else:
                 log.exception('Server error')
-                e = json_error(exc.HTTPServerError(e.message))
+                e = exc.HTTPServerError(e.message)
             raise e
         finally:
             self._session.commit()
@@ -143,10 +140,10 @@ class U2FServerApplication(object):
                 handle = controller.authenticate_complete(
                     user_id, data.authenticateResponse)
             except KeyError:
-                raise exc.HTTPBadRequest('Malformed request')
+                raise BadInputException('Malformed request')
             except ValueError as e:
                 log.exception('Error in authenticate')
-                raise exc.HTTPBadRequest(e.message)
+                raise BadInputException(e.message)
             controller.set_props(handle, data.properties)
 
             return controller.get_descriptor(user_id, handle)
@@ -173,7 +170,7 @@ class U2FServerApplication(object):
 def create_application(settings):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    engine = create_engine(settings['db'], echo=True)
+    engine = create_engine(settings['db'], echo=False)
 
     Session = sessionmaker(bind=engine)
     session = Session()

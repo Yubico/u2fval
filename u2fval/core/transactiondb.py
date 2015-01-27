@@ -27,6 +27,7 @@
 
 
 from u2fval.model import User, Transaction
+from u2fval.core.exc import BadInputException
 from datetime import datetime, timedelta
 
 
@@ -38,7 +39,7 @@ class DBStore(object):
         self._ttl = ttl
 
     def _delete_expired(self):
-        expiration = datetime.now() - timedelta(seconds=self._ttl)
+        expiration = datetime.utcnow() - timedelta(seconds=self._ttl)
         self._session.query(Transaction) \
             .filter(Transaction.created_at < expiration).delete()
 
@@ -65,9 +66,10 @@ class DBStore(object):
         transaction = self._session.query(Transaction) \
             .filter(Transaction.transaction_id == transaction_id).first()
         if transaction is None:
-            raise ValueError('Invalid transaction')
+            raise BadInputException('Invalid transaction')
         if transaction.user.name != user_id or \
                 transaction.user.client_id != client_id:
-            raise ValueError('Transaction not valid for user_id: %s' % user_id)
+            raise BadInputException('Transaction not valid for user_id: %s'
+                                    % user_id)
         self._session.delete(transaction)
         return transaction.data
