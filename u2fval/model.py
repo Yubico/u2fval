@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from sqlalchemy import (Column, Integer, String, Text, ForeignKey, Sequence,
-                        DateTime, BigInteger, UniqueConstraint)
+                        Boolean, DateTime, BigInteger, UniqueConstraint)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -132,6 +132,7 @@ class Device(Base):
     bind_data = Column(Text())
     certificate_id = Column(Integer, ForeignKey('certificates.id'))
     certificate = relationship('Certificate')
+    compromised = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     authenticated_at = Column(DateTime)
     counter = Column(BigInteger)
@@ -157,21 +158,19 @@ class Device(Base):
         self.user = user
         self.certificate = certificate
 
-    def get_descriptor(self, filter=None):
-        data = {'handle': self.handle}
-
-        properties = dict(self.properties)
-        properties['created'] = self.created_at.isoformat() + 'Z'
+    def get_descriptor(self):
         authenticated = self.authenticated_at
         if authenticated is not None:
             authenticated = authenticated.isoformat() + 'Z'
-        properties['last-authenticated'] = authenticated
 
-        if filter is not None:
-            properties = {k: properties.get(k) for k in filter}
-        data['properties'] = properties
-
-        return data
+        # TODO: Add metadata
+        return {
+            'handle': self.handle,
+            'compromised': self.compromised,
+            'created': self.created_at.isoformat() + 'Z',
+            'lastUsed': authenticated,
+            'properties': dict(self.properties)
+        }
 
 
 class Property(Base):
