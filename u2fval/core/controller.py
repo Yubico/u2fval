@@ -26,6 +26,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from u2fval.model import Client, User, Device
+from u2fval.core.exc import (BadInputException, NoEligableDevicesException,
+                             DeviceCompromisedException)
 from u2flib_server.u2f_v2 import (start_register, complete_register,
                                   start_authenticate, verify_authenticate)
 from u2flib_server.utils import rand_bytes
@@ -128,7 +130,7 @@ class U2FController(object):
                 .filter(Device.user_id == user.id) \
                 .filter(Device.handle == handle).first()
         if user is None or dev is None:
-            raise ValueError('No device matches descriptor: %s' % handle)
+            raise BadInputException('No device matches descriptor: %s' % handle)
         return dev.get_descriptor()
 
     def get_descriptor(self, username, handle):
@@ -149,13 +151,24 @@ class U2FController(object):
         sign_requests = []
         challenges = {}
         rand = rand_bytes(32)
-        for handle, dev in user.devices.items():
-            challenge = start_authenticate(dev.bind_data, rand)
-            sign_requests.append(challenge)
-            challenges[handle] = {
-                'keyHandle': challenge.keyHandle,
-                'challenge': challenge
-            }
+        devices = user.devices
+        if len(devices) == 0:
+            raise NoEligableDevicesException('No devices registered', [])
+
+        for handle, dev in devices.items():
+            if not dev.compromised:
+                challenge = start_authenticate(dev.bind_data, rand)
+                sign_requests.append(challenge)
+                challenges[handle] = {
+                    'keyHandle': challenge.keyHandle,
+                    'challenge': challenge
+                }
+
+        if not sign_requests:
+            raise NoEligableDevicesException(
+                'All devices compromised',
+                [d.get_descriptor() for d in devices.values()]
+            )
         self._memstore.store(self._client.id, username, rand, challenges)
         return sign_requests
 
@@ -166,6 +179,9 @@ class U2FController(object):
         for handle, data in challenges.items():
             if data['keyHandle'] == resp.keyHandle:
                 dev = user.devices[handle]
+                if dev.compromised:
+                    raise BadInputException('Device is compromised')
+
                 counter, presence = verify_authenticate(
                     dev.bind_data,
                     data['challenge'],
@@ -176,9 +192,9 @@ class U2FController(object):
                     dev.counter = counter
                     dev.authenticated_at = datetime.now()
                     return handle
-                # TODO: We might want to disable the device here.
                 dev.compromised = True
-                raise ValueError('Device counter mismatch, device compromised!')
+                raise DeviceCompromisedException('Device counter mismatch',
+                                                 dev.get_descriptor())
         else:
-            raise ValueError('No device found for keyHandle: %s' %
-                             resp.keyHandle)
+            raise BadInputException('No device found for keyHandle: %s' %
+                                    resp.keyHandle)
