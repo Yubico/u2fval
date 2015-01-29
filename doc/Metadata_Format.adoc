@@ -64,7 +64,7 @@ it is trusted by one of the roots from the same metadata object.
 ----
 dictionary Selector {
   DOMString type;
-  optional any parameters;
+  optional dictionary parameters;
 }
 ----
 
@@ -86,8 +86,14 @@ Type value::
   +fingerprint+
 
 Parameters type::
-  +DOMString[]+ hex values of SHA1 fingerprints of attestation certificates to
-  match against.
+[source, javascript]
+----
+dictionary FingerprintParameters {
+  DOMString[] fingerprints;
+}
+----
+The fingerprints field contains hex values of SHA1 fingerprints of attestation
+certificates to match against.
 
 ===== x509Extension
 Match certificates by their extensions.
@@ -103,4 +109,8 @@ dictionary X509ExtensionParameters {
   optional DOMString value;
 }
 ----
-
+The key field contains the textual representation of the OID of the extension
+to match against. The value field contains the matching value when compared to
+the extensions OctetString value when interpreted as an ASCII string. If the
+value field is missing, any value will be accepted, as long as the certificate
+has the extension with the given key.
