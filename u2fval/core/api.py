@@ -189,10 +189,14 @@ class MetadataCache(object):
 
     def get_metadata(self, device):
         attestation = self.get_attestation(device)
-        return {
-            'vendor': attestation.vendor_info,
-            'device': attestation.device_info
-        } if attestation else None
+        if attestation:
+            metadata = {}
+            if attestation.vendor_info:
+                metadata['vendor'] = attestation.vendor_info
+            if attestation.device_info:
+                metadata['device'] = attestation.device_info
+            return metadata
+        return None
 
 
 def create_application(settings):
