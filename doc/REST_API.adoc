@@ -76,13 +76,15 @@ dictionary DeviceDescriptor {
 ==== DeviceMetadata
 The metadata provided in the +DeviceDescriptor+ contains metadata about the
 device vendor as well as the device itself. The two contained fields
-(+VendorInfo+ and +Device+) are described link:Metadata_Format.adoc[here].
+(+VendorInfo+ and +DeviceInfo+) are described link:Metadata_Format.adoc[here].
+If no metadata exists for either (or both) of these fields the fields will be
+omitted.
 
 [source,javascript]
 ----
 dictionary DeviceMetadata {
-  VendorInfo vendor;
-  Device device;
+  optional VendorInfo vendor;
+  optional DeviceInfo device;
 };
 ----
 

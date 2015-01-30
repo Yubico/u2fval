@@ -46,7 +46,7 @@ VALUES = {
     'DATABASE_CONFIGURATION': 'db',
     'USE_MEMCACHED': 'mc',
     'MEMCACHED_SERVERS': 'mc_hosts',
-    'CA_CERTS': 'ca_certs',
+    'METADATA': 'metadata',
     'DISABLE_ATTESTATION_VERIFICATION': 'disable_attestation'
 }
 
@@ -68,7 +68,7 @@ try:
     user_settings = imp.load_source('user_settings', SETTINGS_FILE)
     settings = parse(user_settings, settings)
 except IOError as e:
-    if not e.errno in [errno.ENOENT, errno.EACCES]:
+    if e.errno not in [errno.ENOENT, errno.EACCES]:
         raise e
 finally:
     sys.dont_write_bytecode = dont_write_bytecode

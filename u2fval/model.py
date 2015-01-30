@@ -158,19 +158,23 @@ class Device(Base):
         self.user = user
         self.certificate = certificate
 
-    def get_descriptor(self):
+    def get_descriptor(self, metadata=None):
         authenticated = self.authenticated_at
         if authenticated is not None:
             authenticated = authenticated.isoformat() + 'Z'
 
-        # TODO: Add metadata
-        return {
+        data = {
             'handle': self.handle,
             'compromised': self.compromised,
             'created': self.created_at.isoformat() + 'Z',
             'lastUsed': authenticated,
             'properties': dict(self.properties)
         }
+
+        if metadata is not None:
+            data['metadata'] = metadata
+
+        return data
 
 
 class Property(Base):

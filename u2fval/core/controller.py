@@ -41,12 +41,14 @@ log = logging.getLogger(__name__)
 
 class U2FController(object):
 
-    def __init__(self, session, memstore, client_name, cert_verifier):
+    def __init__(self, session, memstore, client_name, metadata,
+                 require_trusted=True):
         self._session = session
         self._memstore = memstore
         self._client = session.query(Client) \
             .filter(Client.name == client_name).one()
-        self._cert_verifier = cert_verifier
+        self._metadata = metadata
+        self._require_trusted = require_trusted
 
     def _get_user(self, username):
         return self._session.query(User) \
@@ -107,7 +109,9 @@ class U2FController(object):
         data = self._memstore.retrieve(self._client.id, username, memkey)
         bind, cert = complete_register(data['request'], resp,
                                        self._client.valid_facets)
-        self._cert_verifier(cert)
+        attestation = self._metadata.get_attestation(cert)
+        if self._require_trusted and not attestation.trusted:
+            raise BadInputException('Device type is not trusted')
         user = self._get_or_create_user(username)
         dev = user.add_device(bind.json, cert)
         log.info('User: "%s/%s" - Device registered: "%s"' % (
@@ -131,7 +135,7 @@ class U2FController(object):
                 .filter(Device.handle == handle).first()
         if user is None or dev is None:
             raise BadInputException('No device matches descriptor: %s' % handle)
-        return dev.get_descriptor()
+        return dev.get_descriptor(self._metadata.get_metadata(dev))
 
     def get_descriptor(self, username, handle):
         user = self._get_user(username)
@@ -141,7 +145,8 @@ class U2FController(object):
         user = self._get_user(username)
         if user is None:
             return []
-        return [d.get_descriptor() for d in user.devices.values()]
+        return [d.get_descriptor(self._metadata.get_metadata(d))
+                for d in user.devices.values()]
 
     def authenticate_start(self, username, invalidate=False):
         user = self._get_user(username)

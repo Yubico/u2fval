@@ -12,7 +12,7 @@ dictionary MetadataObject {
   unsigned long version;
   DOMString[] trustedCertificates;
   optional VendorInfo vendorInfo;
-  optional Device[]? devices;
+  optional DeviceInfo[]? devices;
 }
 ----
 
@@ -40,10 +40,10 @@ dictionary VendorInfo {
 The vendor info object contains information about the vendor, such as name and
 URL. Additional fields may be added to provide more information.
 
-=== Device
+=== DeviceInfo
 [source, javascript]
 ----
-dictionary Device {
+dictionary DeviceInfo {
   DOMString deviceId;
   optional DOMString displayName;
   optional DOMString imageUrl;

@@ -25,11 +25,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from u2fval.model import Device
 from u2fval.core.controller import U2FController
 from u2fval.core.jsobjects import (
     RegisterRequestData, RegisterResponseData, AuthenticateRequestData,
     AuthenticateResponseData)
 from u2fval.core.exc import U2fException, BadInputException
+from M2Crypto import X509
 from webob.dec import wsgify
 from webob import exc, Response
 import json
@@ -49,10 +51,11 @@ def u2f_error(e):
 
 class U2FServerApplication(object):
 
-    def __init__(self, session, memstore, cert_verifier):
+    def __init__(self, session, memstore, metadata, disable_attestation=False):
         self._session = session
         self._memstore = memstore
-        self._cert_verifier = cert_verifier
+        self._metadata = metadata
+        self._require_trusted = not disable_attestation
 
     @wsgify
     def __call__(self, request):
@@ -81,7 +84,7 @@ class U2FServerApplication(object):
     def client(self, request, client_name):
         user_id = request.path_info_pop()
         controller = U2FController(self._session, self._memstore, client_name,
-                                   self._cert_verifier)
+                                   self._metadata, self._require_trusted)
         if not user_id:
             if request.method == 'GET':
                 return controller.get_trusted_facets()
@@ -167,6 +170,31 @@ class U2FServerApplication(object):
             raise exc.HTTPNotFound(e.message)
 
 
+class MetadataCache(object):
+
+    def __init__(self, provider):
+        self._provider = provider
+        self._cache = {}
+
+    def get_attestation(self, device_or_cert):
+        if isinstance(device_or_cert, Device):
+            device = device_or_cert
+            if device.certificate_id not in self._cache:
+                cert = X509.load_cert_der_string(device.certificate.der)
+                attestation = self._provider.get_attestation(cert)
+                self._cache[device.certificate_id] = attestation
+            return self._cache[device.certificate_id]
+        else:
+            return self._provider.get_attestation(device_or_cert)
+
+    def get_metadata(self, device):
+        attestation = self.get_attestation(device)
+        return {
+            'vendor': attestation.vendor_info,
+            'device': attestation.device_info
+        } if attestation else None
+
+
 def create_application(settings):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -175,14 +203,12 @@ def create_application(settings):
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    if settings['disable_attestation']:
-        # Dummy verifier that does nothing.
-        verifier = lambda x: None
-    else:
-        from u2fval.attestation.calist import CAListVerifier
-        verifier = CAListVerifier()
-        for path in settings['ca_certs']:
-            verifier.add_ca_dir(path)
+    from u2flib_server.attestation import MetadataProvider, create_resolver
+    import os
+    data = settings['metadata']
+    if not os.path.isdir(data) or len(os.listdir(data)) == 0:
+        data = None
+    metadata = MetadataCache(MetadataProvider(create_resolver(data)))
 
     if settings['mc']:
         from u2fval.core.transactionmc import MemcachedStore
@@ -191,4 +217,5 @@ def create_application(settings):
         from u2fval.core.transactiondb import DBStore
         memstore = DBStore(session)
 
-    return U2FServerApplication(session, memstore, verifier)
+    return U2FServerApplication(session, memstore, metadata,
+                                settings['disable_attestation'])
