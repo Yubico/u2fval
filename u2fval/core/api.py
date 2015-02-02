@@ -34,6 +34,7 @@ from u2fval.core.exc import U2fException, BadInputException
 from M2Crypto import X509
 from webob.dec import wsgify
 from webob import exc, Response
+from cachetools import lru_cache, LRUCache
 import json
 import logging
 
@@ -51,11 +52,11 @@ def u2f_error(e):
 
 class U2FServerApplication(object):
 
-    def __init__(self, session, memstore, metadata, disable_attestation=False):
+    def __init__(self, session, memstore, metadata, allow_untrusted=False):
         self._session = session
         self._memstore = memstore
         self._metadata = metadata
-        self._require_trusted = not disable_attestation
+        self._require_trusted = not allow_untrusted
 
     @wsgify
     def __call__(self, request):
@@ -81,10 +82,14 @@ class U2FServerApplication(object):
         finally:
             self._session.commit()
 
+    @lru_cache(maxsize=16)
+    def _get_controller(self, client_name):
+        return U2FController(self._session, self._memstore, client_name,
+                             self._metadata, self._require_trusted)
+
     def client(self, request, client_name):
         user_id = request.path_info_pop()
-        controller = U2FController(self._session, self._memstore, client_name,
-                                   self._metadata, self._require_trusted)
+        controller = self._get_controller(client_name)
         if not user_id:
             if request.method == 'GET':
                 return controller.get_trusted_facets()
@@ -172,9 +177,9 @@ class U2FServerApplication(object):
 
 class MetadataCache(object):
 
-    def __init__(self, provider):
+    def __init__(self, provider, maxsize=64):
         self._provider = provider
-        self._cache = {}
+        self._cache = LRUCache(maxsize=maxsize)
 
     def get_attestation(self, device_or_cert):
         if isinstance(device_or_cert, Device):
@@ -222,4 +227,4 @@ def create_application(settings):
         memstore = DBStore(session)
 
     return U2FServerApplication(session, memstore, metadata,
-                                settings['disable_attestation'])
+                                settings['allow_untrusted'])

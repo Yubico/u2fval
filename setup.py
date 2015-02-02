@@ -73,7 +73,7 @@ setup(
         ('/etc/yubico/u2fval/cacerts', glob.glob('conf/cacerts/*'))
     ],
     install_requires=['python-u2flib-server>=3.0', 'SQLAlchemy',
-                      'python-memcached', 'WebOb'],
+                      'python-memcached', 'WebOb', 'cachetools'],
     test_suite='nose.collector',
     tests_require=[''],
     cmdclass={'release': release, 'sdist': custom_sdist},

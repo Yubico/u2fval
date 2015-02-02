@@ -11,8 +11,6 @@ MEMCACHED_SERVERS = ['127.0.0.1:11211']
 # Add files containing trusted metadata JSON to the directory below.
 METADATA = '/etc/yubico/u2fval/metadata/'
 
-# Setting this to True will skip any attepts to verify the attestation
-# certificates provided by device registrations. This will allow any type of
-# U2F device to be registered against the server (including software based
-# tokens).
-DISABLE_ATTESTATION_VERIFICATION = False
+# Allow the use of untrusted (for which attestation cannot be verified using
+# the available trusted metadata) U2F devices.
+ALLOW_UNTRUSTED = False

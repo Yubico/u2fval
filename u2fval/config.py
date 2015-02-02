@@ -47,7 +47,7 @@ VALUES = {
     'USE_MEMCACHED': 'mc',
     'MEMCACHED_SERVERS': 'mc_hosts',
     'METADATA': 'metadata',
-    'DISABLE_ATTESTATION_VERIFICATION': 'disable_attestation'
+    'ALLOW_UNTRUSTED': 'allow_untrusted'
 }
 
 
