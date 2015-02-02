@@ -72,7 +72,7 @@ setup(
         ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
         ('/etc/yubico/u2fval/cacerts', glob.glob('conf/cacerts/*'))
     ],
-    install_requires=['python-u2flib-server>=3.0', 'SQLAlchemy',
+    install_requires=['python-u2flib-server>=3.1', 'SQLAlchemy',
                       'python-memcached', 'WebOb', 'cachetools'],
     test_suite='nose.collector',
     tests_require=[''],
