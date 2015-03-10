@@ -73,7 +73,7 @@ The client name _testclient_ above needs to match the name used for the
 htdigest command. The -a argument defines the application ID of the client, and
 the -f argument sets the valid facets for the client (for multiple facets,
 separate them with spaces). For more information about these parameters,
-http://developers-beta.yubico.com/U2F/[click here]. If you need to change these
+https://developers.yubico.com/U2F/[click here]. If you need to change these
 settings later you can use the u2fval tool (run "u2fval -h" for usage). 
 
 Now all that remains is to activate the Apache configuration:
