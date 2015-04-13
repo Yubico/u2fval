@@ -75,7 +75,7 @@ class U2FController(object):
     def get_trusted_facets(self):
         return {
             'trustedFacets': [{
-                'version': {'major': 2, 'minor': 0},
+                'version': {'major': 1, 'minor': 0},
                 'ids': self._client.valid_facets
             }]
         }
