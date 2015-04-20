@@ -215,8 +215,11 @@ def create_application(settings):
     from u2flib_server.attestation import MetadataProvider, create_resolver
     import os
     data = settings['metadata']
-    if isinstance(data, basestring) and not os.path.isdir(data) \
-            or len(os.listdir(data)) == 0:
+    # If pointing to an empty or non-existant directory, set to None so that
+    # built-in metadata is used.
+    if isinstance(data, basestring) \
+            and not os.path.isfile(data) \
+            and (not os.path.isdir(data) or len(os.listdir(data)) == 0):
         data = None
     metadata = MetadataCache(MetadataProvider(create_resolver(data)))
 
