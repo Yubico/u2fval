@@ -191,6 +191,8 @@ class U2FController(object):
                     resp,
                     self._client.valid_facets
                 )
+                if presence == chr(0):
+                    raise Exception('User presence byte not set!')
                 if counter > dev.counter:
                     dev.counter = counter
                     dev.authenticated_at = datetime.now()
