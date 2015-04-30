@@ -193,7 +193,7 @@ class U2FController(object):
                 )
                 if presence == chr(0):
                     raise Exception('User presence byte not set!')
-                if counter > dev.counter:
+                if counter > (dev.counter or -1):
                     dev.counter = counter
                     dev.authenticated_at = datetime.now()
                     return handle
