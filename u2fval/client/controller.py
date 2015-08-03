@@ -70,7 +70,7 @@ class ClientController(object):
         except KeyError:
             client = Client(name, app_id, valid_facets)
             self._session.add(client)
-            log.info('Client created: %s' % name)
+            log.info('Client created: %s', name)
 
     def update_client(self, name, app_id=None, valid_facets=None):
         client = self.get_client(name)
@@ -82,7 +82,7 @@ class ClientController(object):
     def delete_client(self, name):
         client = self.get_client(name)
         self._session.delete(client)
-        log.info('Client deleted: %s' % name)
+        log.info('Client deleted: %s', name)
 
     def list_clients(self):
         return [c[0] for c in self._session.query(Client.name).all()]

@@ -65,7 +65,7 @@ class U2FController(object):
         if user is None:
             user = User(username)
             self._client.users.append(user)
-            log.info('User created: "%s/%s"' % (self._client.name, username))
+            log.info('User created: "%s/%s"', self._client.name, username)
         return user
 
     @property
@@ -84,7 +84,7 @@ class U2FController(object):
         user = self._get_user(username)
         if user is not None:
             self._session.delete(user)
-            log.info('User deleted: "%s/%s"' % (self._client.name, username))
+            log.info('User deleted: "%s/%s"', self._client.name, username)
 
     def register_start(self, username):
         # RegisterRequest
@@ -114,15 +114,15 @@ class U2FController(object):
             raise BadInputException('Device type is not trusted')
         user = self._get_or_create_user(username)
         dev = user.add_device(bind.json, cert)
-        log.info('User: "%s/%s" - Device registered: "%s"' % (
-            self._client.name, username, dev.handle))
+        log.info('User: "%s/%s" - Device registered: "%s"',
+            self._client.name, username, dev.handle)
         return dev.handle
 
     def unregister(self, handle):
         dev = self._get_device(handle)
         self._session.delete(dev)
-        log.info('User: "%s/%s" - Device unregistered: "%s"' % (
-            self._client.name, dev.user.name, handle))
+        log.info('User: "%s/%s" - Device unregistered: "%s"',
+            self._client.name, dev.user.name, handle)
 
     def set_props(self, handle, props):
         dev = self._get_device(handle)
@@ -151,7 +151,7 @@ class U2FController(object):
     def authenticate_start(self, username, invalidate=False):
         user = self._get_user(username)
         if user is None or len(user.devices) == 0:
-            log.info('User "%s" has no devices registered' % username)
+            log.info('User "%s" has no devices registered', username)
             raise NoEligableDevicesException('No devices registered', [])
 
         sign_requests = []
