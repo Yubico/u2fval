@@ -70,15 +70,14 @@ setup(
     entry_points={
         'console_scripts': ['u2fval=u2fval.cli.main']
     },
-    setup_requires=['nose>=1.0'],
     data_files=[
         ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
         ('/etc/yubico/u2fval/metadata', glob.glob('conf/metadata/*.json'))
     ],
     install_requires=['python-u2flib-server>=3.1', 'SQLAlchemy',
                       'python-memcached', 'WebOb', 'cachetools'],
-    test_suite='nose.collector',
-    tests_require=[''],
+    test_suite='test',
+    tests_require=[],
     extras_require={
         'u2fval:python_version=="2.6"': ['argparse']
     },
