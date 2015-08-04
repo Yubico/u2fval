@@ -2,6 +2,28 @@
 The Yubico U2F Validation Server (u2fval) is a server that provides U2F
 registration and authentication through a simple JSON based REST API.
 
+=== Installation
+u2flib-server is installable by running the following command:
+
+  $ pip install u2fval-<version>.tar.gz
+
+Where the .tar.gz file is a source release of the project.
+
+==== Check out the code
+Run these commands to check out the source code:
+
+  git clone https://github.com/Yubico/u2fval.git
+  cd u2fval
+  git submodule init
+  git submodule update
+
+==== Build a source release
+To build a source release tar ball, run this command:
+
+  python setup.py sdist
+
+The resulting build will be created in the dist/ subdirectory.
+
 === Configuration ===
 Configuration is kept in /etc/yubico/u2fval/u2fval.conf, see the default
 configuration file for more information.
