@@ -25,25 +25,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from setuptools import setup, find_packages
-from setuptools.command.sdist import sdist
-from release import release
-import re
+from u2fval.yubicommon.setup import setup, custom_sdist
 import os
 import glob
 
-VERSION_PATTERN = re.compile(r"(?m)^__version__\s*=\s*['\"](.+)['\"]$")
 
-
-def get_version():
-    """Return the current version as defined by u2fval/__init__.py."""
-
-    with open('u2fval/__init__.py', 'r') as f:
-        match = VERSION_PATTERN.search(f.read())
-        return match.group(1)
-
-
-class custom_sdist(sdist):
+class my_sdist(custom_sdist):
     def run(self):
         print "copying default settings..."
         source = os.path.abspath('u2fval/default_settings.py')
@@ -52,21 +39,18 @@ class custom_sdist(sdist):
             with open(source, 'r') as source_f:
                 target_f.write(source_f.read())
         os.chmod(target, 0600)
-        sdist.run(self)
+        custom_sdist.run(self)
         os.remove(target)
 
 
 setup(
     name='u2fval',
-    version=get_version(),
     author='Dain Nilsson',
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
     maintainer_email='ossmaint@yubico.com',
     url='https://github.com/Yubico/u2fval',
     license='BSD 2 clause',
-    packages=find_packages(),
-    scripts=['scripts/u2fval'],
     entry_points={
         'console_scripts': ['u2fval=u2fval.cli.main']
     },
@@ -81,7 +65,7 @@ setup(
     extras_require={
         'u2fval:python_version=="2.6"': ['argparse']
     },
-    cmdclass={'release': release, 'sdist': custom_sdist},
+    cmdclass={'sdist': my_sdist},
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
