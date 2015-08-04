@@ -1,7 +1,9 @@
 *.pyc
+*.egg
 *.egg-info
 build/
 dist/
+*.eggs/
 .ropeproject/
 MANIFEST
 ChangeLog
