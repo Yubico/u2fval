@@ -185,3 +185,7 @@ def main():
     from u2fval.config import settings
 
     handle_args(settings, args)
+
+
+if __name__ == '__main__':
+    main()
