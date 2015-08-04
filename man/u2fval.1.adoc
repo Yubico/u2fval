@@ -1,0 +1,88 @@
+u2fval(1)
+=========
+:doctype: manpage
+:man source: u2fval
+:man manual: u2fval manual
+
+== Name
+u2fval - U2F validation server implementing the U2FVAL protocol.
+
+== Synopsis
+*u2fval* [_options_] _command_
+
+== Description
+The Yubico U2F Validation Server (u2fval) is a server that provides U2F
+registration and authentication through a simple JSON based REST API.
+
+== Options
+u2fval has the following options:
+
+*-h, --help*::
+    Shows a list of available sub commands and arguments.
+
+*-c, --config CONFIG*::
+    Specify an alternate configuration file to use.
+
+*-d, --debug*::
+    Prints debug information to stdout.
+
+== Commands
+u2fval supports multiple commands, each with its own options, in addition
+to the global options:
+
+=== *u2fval run* [OPTIONS]
+    Runs the standalone server.
+
+*-i, --interface INTERFACE*::
+    Network interface to bind to.
+
+*-p, --port PORT*::
+    TCP port to bind to.
+
+*-c, --client CLIENT*::
+    Run the server in single client mode using CLIENT.
+
+=== *u2fval client list*
+    Lists all clients
+
+=== *u2fval client create [OPTIONS] NAME*
+    Creates a new client.
+    
+*-a, --appId APPID*::
+    Sets the appId.
+
+*-f, --facets FACET [FACET ...]*::
+    Sets the valid facets for the client.
+
+*NAME*::
+    The name to give the client.
+
+=== *u2fval client show NAME*
+    Shows information about a client.
+
+*NAME*::
+    The name of the client to show.
+
+=== *u2fval client update [OPTIONS] NAME*
+    Updates data for a client.
+
+*-a, --appId APPID*::
+    Sets the appId.
+
+*-f, --facets FACET [FACET ...]*::
+    Sets the valid facets for the client.
+
+*NAME*::
+    The name of the client to change.
+
+=== *u2fval client delete NAME*
+    Deletes a client.
+
+*NAME*::
+    The name of the client to delete.
+
+=== *u2fval db init*
+    Initializes the database, creating as needed tables.
+
+== Bugs
+Report bugs in the issue tracker (https://github.com/Yubico/u2fval/issues)
