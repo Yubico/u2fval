@@ -67,6 +67,9 @@ setup(
     license='BSD 2 clause',
     packages=find_packages(),
     scripts=['scripts/u2fval'],
+    entry_points={
+        'console_scripts': ['u2fval=u2fval.cli.main']
+    },
     setup_requires=['nose>=1.0'],
     data_files=[
         ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
@@ -76,6 +79,9 @@ setup(
                       'python-memcached', 'WebOb', 'cachetools'],
     test_suite='nose.collector',
     tests_require=[''],
+    extras_require={
+        'u2fval:python_version=="2.6"': ['argparse']
+    },
     cmdclass={'release': release, 'sdist': custom_sdist},
     classifiers=[
         'License :: OSI Approved :: BSD License',

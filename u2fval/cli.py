@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #    Copyright (C) 2014  Yubico AB
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -186,7 +185,3 @@ def main():
     from u2fval.config import settings
 
     handle_args(settings, args)
-
-
-if __name__ == '__main__':
-    main()
