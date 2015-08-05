@@ -5,6 +5,10 @@ registration and authentication through a simple JSON based REST API.
 === Installation
 u2flib-server is installable by running the following command:
 
+  $ pip install u2fval
+
+Alternatively, you can run:
+
   $ pip install u2fval-<version>.tar.gz
 
 Where the .tar.gz file is a source release of the project.
