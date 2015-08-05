@@ -5,7 +5,7 @@ DATABASE_CONFIGURATION = 'sqlite:///:memory:'
 # in progress, instead of persisting them to the database.
 USE_MEMCACHED = False
 
-# If memcached is enabled, use thes servers.
+# If memcached is enabled, use these servers.
 MEMCACHED_SERVERS = ['127.0.0.1:11211']
 
 # Add files containing trusted metadata JSON to the directory below.
