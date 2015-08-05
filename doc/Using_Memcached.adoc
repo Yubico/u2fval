@@ -11,9 +11,14 @@ server, this data is instead stored in memory, which is more performant.
 
 === Installation ===
 Refer to the https://memcached.org[Memcached documentation] for instructions on
-setting up Memecached on your platform. On Ubuntu this is installed using:
+setting up Memcached on your platform. On Ubuntu this is installed using:
 
   # apt-get install memcached
+
+You will also need to have the Python bindings for memcached installed, which
+can be done by installing u2fval with memcache support:
+
+  $ pip install u2fval[memcache]
 
 === Configuration ===
 To configure the Yubico U2F Validation Server to use Memcached, edit the

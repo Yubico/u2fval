@@ -59,11 +59,12 @@ setup(
         ('/etc/yubico/u2fval/metadata', glob.glob('conf/metadata/*.json'))
     ],
     install_requires=['python-u2flib-server>=3.1', 'SQLAlchemy',
-                      'python-memcached', 'WebOb', 'cachetools'],
+                      'WebOb', 'cachetools'],
     test_suite='test',
     tests_require=[],
     extras_require={
-        'u2fval:python_version=="2.6"': ['argparse']
+        'u2fval:python_version=="2.6"': ['argparse'],
+        'memcache': ['python-memcached']
     },
     cmdclass={'sdist': my_sdist},
     classifiers=[
