@@ -49,6 +49,7 @@ setup(
     author_email='dain@yubico.com',
     maintainer='Yubico Open Source Maintainers',
     maintainer_email='ossmaint@yubico.com',
+    description='Standalone/WSGI U2F server implementing the U2FVAL protocol',
     url='https://github.com/Yubico/u2fval',
     license='BSD 2 clause',
     entry_points={
