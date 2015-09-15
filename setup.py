@@ -43,6 +43,18 @@ class my_sdist(custom_sdist):
         os.remove(target)
 
 
+def can_write_etc(path=os.path.join(os.path.sep, 'etc', 'yubico', 'u2fval')):
+    if not os.path.isdir(path):
+        return can_write_etc(os.path.dirname(path))
+    return os.access(path, os.W_OK)
+
+
+# Only write configuration files if we have the correct permissions.
+data_files = [
+    ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
+    ('/etc/yubico/u2fval/metadata', glob.glob('conf/metadata/*.json'))
+] if can_write_etc() else []
+
 setup(
     name='u2fval',
     author='Dain Nilsson',
@@ -55,10 +67,7 @@ setup(
     entry_points={
         'console_scripts': ['u2fval=u2fval.cli:main']
     },
-    data_files=[
-        ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
-        ('/etc/yubico/u2fval/metadata', glob.glob('conf/metadata/*.json'))
-    ],
+    data_files=data_files,
     install_requires=['python-u2flib-server>=3.1', 'SQLAlchemy',
                       'WebOb', 'cachetools'],
     test_suite='test',
