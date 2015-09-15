@@ -53,7 +53,7 @@ setup(
     url='https://github.com/Yubico/u2fval',
     license='BSD 2 clause',
     entry_points={
-        'console_scripts': ['u2fval=u2fval.cli.main']
+        'console_scripts': ['u2fval=u2fval.cli:main']
     },
     data_files=[
         ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
