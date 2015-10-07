@@ -14,7 +14,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from u2fval.model import Client
 import os
 import sys
 import argparse
@@ -30,6 +29,15 @@ def run_parser(parser):
 
 
 def client_parser(parser):
+    class NameFromFacetsAction(argparse.Action):
+        def __call__(self, parser, args, values, option_string=None):
+            if not values:
+                if args.facets and len(args.facets) > 1:
+                    values, args.facets = args.facets[0], args.facets[1:]
+                else:
+                    parser.error('argument %s is required' % self.dest)
+            args.name = values
+
     client_subparsers = parser.add_subparsers(dest='action', help='subcommand')
 
     list_parser = client_subparsers.add_parser('list',
@@ -37,7 +45,8 @@ def client_parser(parser):
 
     create_parser = client_subparsers.add_parser('create',
                                                  help='create a client')
-    create_parser.add_argument('name', metavar='<name>',
+    create_parser.add_argument('name', metavar='<name>', nargs='?',
+                               action=NameFromFacetsAction,
                                help='the name of the client')
     create_parser.add_argument('-a', '--appId', required=True,
                                help='sets the appId')
@@ -53,7 +62,8 @@ def client_parser(parser):
     update_parser = client_subparsers.add_parser('update',
                                                  help='update data for a '
                                                  'client')
-    update_parser.add_argument('name', metavar='<name>',
+    update_parser.add_argument('name', metavar='<name>', nargs='?',
+                               action=NameFromFacetsAction,
                                help='the name of the client')
     update_parser.add_argument('-a', '--appId',
                                help='sets the appId')
@@ -160,7 +170,6 @@ def handle_run(settings, args):
 def handle_db(settings, args):
     from u2fval.model import Base
     from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
 
     engine = create_engine(settings['db'], echo=args.debug)
     Base.metadata.create_all(engine)
