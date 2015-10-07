@@ -33,7 +33,7 @@ def client_parser(parser):
         def __call__(self, parser, args, values, option_string=None):
             if not values:
                 if args.facets and len(args.facets) > 1:
-                    values, args.facets = args.facets[0], args.facets[1:]
+                    values, args.facets = args.facets[-1], args.facets[:-1]
                 else:
                     parser.error('argument %s is required' % self.dest)
             args.name = values
