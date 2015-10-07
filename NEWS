@@ -1,7 +1,8 @@
-* Version 0.9.1 (unreleased)
+* Version 0.9.1 (released 2015-10-07)
  ** Fixed bug with entrypoint for CLI tool.
  ** Only install configuration files if the user has permission to do so 
     to enable installing without root).
+ ** Fixed argument parsing when <name> is given immediately after --facets.
 
 * Version 0.9.0 (released 2015-08-05)
  ** Public beta release.
