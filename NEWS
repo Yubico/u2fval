@@ -1,3 +1,5 @@
+* Version 0.9.2 (unreleased)
+
 * Version 0.9.1 (released 2015-10-07)
  ** Fixed bug with entrypoint for CLI tool.
  ** Only install configuration files if the user has permission to do so 
