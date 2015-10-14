@@ -25,22 +25,22 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from u2fval.yubicommon.setup import setup, custom_sdist
+from u2fval.yubicommon.setup import setup
+import sys
 import os
 import glob
 
 
-class my_sdist(custom_sdist):
-    def run(self):
-        print "copying default settings..."
-        source = os.path.abspath('u2fval/default_settings.py')
-        target = os.path.abspath('conf/u2fval.conf')
-        with open(target, 'w') as target_f:
-            with open(source, 'r') as source_f:
-                target_f.write(source_f.read())
-        os.chmod(target, 0600)
-        custom_sdist.run(self)
-        os.remove(target)
+# Make sure the cont/u2fval.conf file exists and is a copy of
+# u2fval/default_settings.py
+if [_ for _ in ['install', 'sdist'] if _ in sys.argv[1:]]:
+    print "copying default settings..."
+    source = os.path.abspath('u2fval/default_settings.py')
+    target = os.path.abspath('conf/u2fval.conf')
+    with open(target, 'w') as target_f:
+        with open(source, 'r') as source_f:
+            target_f.write(source_f.read())
+    os.chmod(target, 0600)
 
 
 def can_write_etc(path=os.path.join(os.path.sep, 'etc', 'yubico', 'u2fval')):
@@ -76,7 +76,6 @@ setup(
         'u2fval:python_version=="2.6"': ['argparse'],
         'memcache': ['python-memcached']
     },
-    cmdclass={'sdist': my_sdist},
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
