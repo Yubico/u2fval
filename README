@@ -42,11 +42,11 @@ You can install directly from the git checkout by running the following
 commands:
 
   python setup.py install
-  cp u2fval/default_settings.py /etc/yubico/u2fval/u2fval.conf
 
 === Configuration ===
 Configuration is kept in `/etc/yubico/u2fval/u2fval.conf`, see the default
-configuration file for more information.
+configuration file for more information (also available in the conf/ directory
+of any source release of this project).
 
 The Yubico U2F Validation Server needs an SQL database to work. Optionally a
 memcached server can be used to store transient data which doesn't need to be
