@@ -3,39 +3,60 @@ The Yubico U2F Validation Server (u2fval) is a server that provides U2F
 registration and authentication through a simple JSON based REST API.
 
 === Installation
-u2flib-server is installable by running the following command:
+u2flib-server is installable by one of three means
 
-  $ pip install u2fval
+1. via `pip`
+2. via `git`
+3. via `python setup.py`
+
+==== Installation via `pip` ====
+
+Run
+
+  pip install u2fval
 
 Alternatively, you can run:
 
-  $ pip install u2fval-<version>.tar.gz
+  pip install u2fval-<version>.tar.gz
 
-Where the .tar.gz file is a source release of the project.
+Where the `.tar.gz` file is a source release of the project.
 
-==== Check out the code
-Run these commands to check out the source code:
+==== Installation via `git` ====
+
+* Run these commands to check out the source code:
 
   git clone https://github.com/Yubico/u2fval.git
   cd u2fval
   git submodule init
   git submodule update
 
-==== Build a source release
-To build a source release tar ball, run this command:
+* Build a source release tar ball by running:
 
   python setup.py sdist
 
-The resulting build will be created in the dist/ subdirectory.
+The resulting build will be created in the `dist/` subdirectory.
+
+==== Installation via `python setup.py` ====
+
+You can install directly from the git checkout by running the following
+commands:
+
+  python setup.py install
+  cp u2fval/default_settings.py /etc/yubico/u2fval/u2fval.conf
 
 === Configuration ===
-Configuration is kept in /etc/yubico/u2fval/u2fval.conf, see the default
+Configuration is kept in `/etc/yubico/u2fval/u2fval.conf`, see the default
 configuration file for more information.
 
 The Yubico U2F Validation Server needs an SQL database to work. Optionally a
 memcached server can be used to store transient data which doesn't need to be
 persisted to the database (if not available this data will be stored in the
-main database). Once the configuration file has been configured with database
+main database). The default configuration uses an in-memory SQLite3 database
+which you probably want to change to something like
+
+    DATABASE_CONFIGURATION = 'sqlite:////etc/yubico/u2fval/u2fval.db'
+
+Once the configuration file has been configured with database
 credentials, the database can be initialized by running the following command:
 
   u2fval db init
@@ -61,5 +82,5 @@ Apache with mod_wsgi enabled.
 
 === Accessing the Server ===
 Once the server is set up and at least one client has been created, the client
-can access the server via the REST API. Find the API documentation inthe doc/
+can access the server via the REST API. Find the API documentation in the doc/
 directory.
