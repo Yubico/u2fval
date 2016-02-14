@@ -31,10 +31,11 @@ from u2fval.core.jsobjects import (
     RegisterRequestData, RegisterResponseData, AuthenticateRequestData,
     AuthenticateResponseData)
 from u2fval.core.exc import U2fException, BadInputException
-from M2Crypto import X509
 from webob.dec import wsgify
 from webob import exc, Response
 from cachetools import lru_cache, LRUCache
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 import json
 import logging
 
@@ -185,7 +186,8 @@ class MetadataCache(object):
         if isinstance(device_or_cert, Device):
             device = device_or_cert
             if device.certificate_id not in self._cache:
-                cert = X509.load_cert_der_string(device.certificate.der)
+                cert = x509.load_der_x509_certificate(device.certificate.der,
+                                                      default_backend())
                 attestation = self._provider.get_attestation(cert)
                 self._cache[device.certificate_id] = attestation
             return self._cache[device.certificate_id]
