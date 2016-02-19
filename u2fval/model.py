@@ -32,6 +32,9 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref, object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
+
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import Encoding
 from uuid import uuid4
 from datetime import datetime
 from hashlib import sha1
@@ -96,7 +99,8 @@ class User(Base):
 
     def add_device(self, bind_data, cert, properties=None):
         certificate = object_session(self).query(Certificate) \
-            .filter(Certificate.fingerprint == cert.get_fingerprint()) \
+            .filter(Certificate.fingerprint == cert.fingerprint(hashes.SHA1())
+                    .encode('hex')) \
             .first()
         if certificate is None:
             certificate = Certificate(cert)
@@ -119,8 +123,8 @@ class Certificate(Base):
         self._der = der.encode('base64')
 
     def __init__(self, cert):
-        self.fingerprint = cert.get_fingerprint()
-        self.der = cert.as_der()
+        self.fingerprint = cert.fingerprint(hashes.SHA1()).encode('hex')
+        self.der = cert.public_bytes(Encoding.DER)
 
 
 class Device(Base):

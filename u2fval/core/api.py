@@ -118,11 +118,12 @@ class U2FServerApplication(object):
 
     def register(self, request, controller, user_id):
         if request.method == 'GET':
-            register_requests, sign_requests = controller.register_start(
-                user_id)
+            register_requests, sign_requests, descriptors = controller \
+                .register_start(user_id)
             return RegisterRequestData(
                 registerRequests=register_requests,
-                authenticateRequests=sign_requests
+                authenticateRequests=sign_requests,
+                authenticateDescriptors=descriptors
             )
         elif request.method == 'POST':
             data = RegisterResponseData(request.body)
@@ -139,9 +140,10 @@ class U2FServerApplication(object):
 
     def authenticate(self, request, controller, user_id):
         if request.method == 'GET':
-            sign_requests = controller.authenticate_start(user_id)
+            sign_requests, descriptors = controller.authenticate_start(user_id)
             return AuthenticateRequestData(
-                authenticateRequests=sign_requests
+                authenticateRequests=sign_requests,
+                authenticateDescriptors=descriptors
             )
         elif request.method == 'POST':
             data = AuthenticateResponseData(request.body)

@@ -95,14 +95,17 @@ class U2FController(object):
 
         # SignRequest[]
         sign_requests = []
+        descriptors = []
         user = self._get_user(username)
         if user is not None:
             for dev in user.devices.values():
                 sign_requests.append(
                     start_authenticate(dev.bind_data, 'check-only'))
+                descriptors.append(dev.get_descriptor(
+                    self._metadata.get_metadata(dev)))
 
         # To support multiple versions, add more RegisterRequests.
-        return [register_request], sign_requests
+        return [register_request], sign_requests, descriptors
 
     def register_complete(self, username, resp):
         memkey = resp.clientData.challenge
@@ -155,6 +158,7 @@ class U2FController(object):
             raise NoEligableDevicesException('No devices registered', [])
 
         sign_requests = []
+        descriptors = []
         challenges = {}
         rand = rand_bytes(32)
 
@@ -162,6 +166,8 @@ class U2FController(object):
             if not dev.compromised:
                 challenge = start_authenticate(dev.bind_data, rand)
                 sign_requests.append(challenge)
+                descriptors.append(dev.get_descriptor(
+                    self._metadata.get_metadata(dev)))
                 challenges[handle] = {
                     'keyHandle': challenge.keyHandle,
                     'challenge': challenge
@@ -173,7 +179,7 @@ class U2FController(object):
                 [d.get_descriptor() for d in user.devices.values()]
             )
         self._memstore.store(self._client.id, username, rand, challenges)
-        return sign_requests
+        return sign_requests, descriptors
 
     def authenticate_complete(self, username, resp):
         memkey = resp.clientData.challenge
