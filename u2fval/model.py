@@ -97,14 +97,14 @@ class User(Base):
         else:
             self.name = name
 
-    def add_device(self, bind_data, cert, properties=None):
+    def add_device(self, bind_data, cert, properties=None, transports=0):
         certificate = object_session(self).query(Certificate) \
             .filter(Certificate.fingerprint == cert.fingerprint(hashes.SHA1())
                     .encode('hex')) \
             .first()
         if certificate is None:
             certificate = Certificate(cert)
-        return Device(self, bind_data, certificate, properties)
+        return Device(self, bind_data, certificate, properties, transports)
 
 
 class Certificate(Base):
@@ -140,6 +140,7 @@ class Device(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     authenticated_at = Column(DateTime)
     counter = Column(BigInteger)
+    transports = Column(BigInteger)
     _properties = relationship(
         'Property',
         backref='device',
@@ -153,7 +154,8 @@ class Device(Base):
         creator=lambda k, v: Property(k, v)
     )
 
-    def __init__(self, user, bind_data, certificate, properties=None):
+    def __init__(self, user, bind_data, certificate, properties=None,
+                 transports=0):
         if properties is None:
             properties = {}
         self.handle = uuid4().hex
@@ -161,6 +163,7 @@ class Device(Base):
         self.properties.update(properties)
         self.user = user
         self.certificate = certificate
+        self.transports = 0
 
     def get_descriptor(self, metadata=None):
         authenticated = self.authenticated_at
@@ -169,6 +172,7 @@ class Device(Base):
 
         data = {
             'handle': self.handle,
+            'transports': self.transports,
             'compromised': self.compromised,
             'created': self.created_at.isoformat() + 'Z',
             'lastUsed': authenticated,

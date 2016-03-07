@@ -116,7 +116,7 @@ class U2FController(object):
         if self._require_trusted and not attestation.trusted:
             raise BadInputException('Device type is not trusted')
         user = self._get_or_create_user(username)
-        dev = user.add_device(bind.json, cert)
+        dev = user.add_device(bind.json, cert, attestation.transports)
         log.info('User: "%s/%s" - Device registered: "%s"',
             self._client.name, username, dev.handle)
         return dev.handle
