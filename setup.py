@@ -74,7 +74,8 @@ setup(
     tests_require=[],
     extras_require={
         'u2fval:python_version=="2.6"': ['argparse'],
-        'memcache': ['python-memcached']
+        'memcache': ['python-memcached'],
+        'db_migration': ['alembic']
     },
     classifiers=[
         'License :: OSI Approved :: BSD License',

@@ -77,7 +77,7 @@ def client_parser(parser):
 
 
 def db_parser(parser):
-    parser.add_argument('action', choices=['init'], help='subcommand')
+    parser.add_argument('action', choices=['init', 'upgrade'], help='subcommand')
 
 
 def arg_parser():
@@ -172,8 +172,20 @@ def handle_db(settings, args):
     from sqlalchemy import create_engine
 
     engine = create_engine(settings['db'], echo=args.debug)
-    Base.metadata.create_all(engine)
-    print "Database intialized!"
+    if args.action == 'init':
+        Base.metadata.create_all(engine)
+        print "Database intialized!"
+    elif args.action == 'upgrade':
+        try:
+            from alembic import config, command
+        except ImportError:
+            print "Upgrading the database requires alembic"
+            return
+        conf = config.Config('alembic.ini')
+        with engine.begin() as connection:
+            conf.attributes['connection'] = connection
+            command.upgrade(conf, 'head')
+            print "Database upgraded to latest version"
 
 
 def handle_args(settings, args):
