@@ -1,4 +1,4 @@
-== Database Setup ==
+== Database Setup
 The Yubico U2F Validation Server requires an SQL database for storing data.
 Internally, u2fval uses http://www.sqlalchemy.org[SQLAlchemy] to connect to
 the database. Depending on which SQL database you use you might need to install
@@ -35,3 +35,16 @@ Save and close the file, and initialize the database for use with u2fval:
   # u2fval db init
 
 That's it, the database is now configured and ready.
+
+== Database migrations
+From time to time, changes may be made to the database structure between
+releases. When this happens, migration will have to be performed to adapt an
+existing database without damaging any data. As a precaution, you should make a
+full backup of your database before performing migrations. Once you've made
+your backup, upgrade u2fval to the latest version, then run the following
+command:
+
+  # u2fval db upgrade
+
+Running this command will migrate your database to the current structure.
+Running this command when you're already at the lastest version does nothing.
