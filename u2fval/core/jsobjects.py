@@ -47,11 +47,11 @@ class RegisterRequestData(JSONDict):
 
     @property
     def authenticateRequests(self):
-        return map(SignRequest, self['authenticateRequests'])
+        return [SignRequest(x) for x in self['authenticateRequests']]
 
     @property
     def registerRequests(self):
-        return map(RegisterRequest, self['registerRequests'])
+        return [RegisterRequest(x) for x in self['registerRequests']]
 
 
 class RegisterResponseData(JSONDict, WithProps):
@@ -65,7 +65,7 @@ class AuthenticateRequestData(JSONDict):
 
     @property
     def authenticateRequests(self):
-        return map(SignRequest, self['authenticateRequests'])
+        return [SignRequest(x) for x in self['authenticateRequests']]
 
 
 class AuthenticateResponseData(JSONDict, WithProps):
