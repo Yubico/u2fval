@@ -26,11 +26,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from u2fval.model import Client, User, Device
-from u2fval.core.exc import (BadInputException, NoEligableDevicesException,
+from u2fval.core.exc import (BadInputException, NoEligibleDevicesException,
                              DeviceCompromisedException)
 from u2flib_server.u2f_v2 import (start_register, complete_register,
                                   start_authenticate, verify_authenticate)
 from u2flib_server.utils import rand_bytes
+from sqlalchemy.orm import exc
 from datetime import datetime
 import logging
 
@@ -45,8 +46,11 @@ class U2FController(object):
                  require_trusted=True):
         self._session = session
         self._memstore = memstore
-        self._client = session.query(Client) \
-            .filter(Client.name == client_name).one()
+        try:
+            self._client = session.query(Client) \
+                .filter(Client.name == client_name).one()
+        except exc.NoResultFound:
+            raise KeyError('No Client with name %s found' % client_name)
         self._metadata = metadata
         self._require_trusted = require_trusted
 
@@ -155,7 +159,7 @@ class U2FController(object):
         user = self._get_user(username)
         if user is None or len(user.devices) == 0:
             log.info('User "%s" has no devices registered', username)
-            raise NoEligableDevicesException('No devices registered', [])
+            raise NoEligibleDevicesException('No devices registered', [])
 
         sign_requests = []
         descriptors = []
@@ -174,7 +178,7 @@ class U2FController(object):
                 }
 
         if not sign_requests:
-            raise NoEligableDevicesException(
+            raise NoEligibleDevicesException(
                 'All devices compromised',
                 [d.get_descriptor() for d in user.devices.values()]
             )

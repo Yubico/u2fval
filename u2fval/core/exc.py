@@ -30,7 +30,7 @@ import json
 __all__ = [
     'U2fException',
     'BadInputException',
-    'NoEligableDevicesException',
+    'NoEligibleDevicesException',
     'DeviceCompromisedException'
 ]
 
@@ -59,7 +59,7 @@ class BadInputException(U2fException):
     code = 10
 
 
-class NoEligableDevicesException(U2fException):
+class NoEligibleDevicesException(U2fException):
     code = 11
 
 

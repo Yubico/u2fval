@@ -78,15 +78,18 @@ class U2FServerApplication(object):
                 pass
             else:
                 log.exception('Server error')
-                e = exc.HTTPServerError(e.message)
+                e = exc.HTTPServerError(e.args[0])
             raise e
         finally:
             self._session.commit()
 
     @lru_cache(maxsize=16)
     def _get_controller(self, client_name):
-        return U2FController(self._session, self._memstore, client_name,
-                             self._metadata, self._require_trusted)
+        try:
+            return U2FController(self._session, self._memstore, client_name,
+                                 self._metadata, self._require_trusted)
+        except KeyError as e:
+            raise BadInputException(e.args[0])
 
     def client(self, request, client_name):
         user_id = request.path_info_pop()
@@ -208,13 +211,14 @@ class MetadataCache(object):
         return None
 
 
-def create_application(settings):
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    engine = create_engine(settings['db'], echo=False)
+def create_application(settings, session=None):
+    if not session:
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        engine = create_engine(settings['db'], echo=False)
 
-    Session = sessionmaker(bind=engine)
-    session = Session()
+        Session = sessionmaker(bind=engine)
+        session = Session()
 
     from u2flib_server.attestation import MetadataProvider, create_resolver
     import os
