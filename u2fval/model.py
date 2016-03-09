@@ -38,6 +38,7 @@ from cryptography.hazmat.primitives.serialization import Encoding
 from uuid import uuid4
 from datetime import datetime
 from hashlib import sha1
+from binascii import b2a_hex, b2a_base64, a2b_base64
 import json
 
 
@@ -97,14 +98,14 @@ class User(Base):
         else:
             self.name = name
 
-    def add_device(self, bind_data, cert, properties=None, transports=0):
+    def add_device(self, bind_data, cert, transports=0):
         certificate = object_session(self).query(Certificate) \
-            .filter(Certificate.fingerprint == cert.fingerprint(hashes.SHA1())
-                    .encode('hex')) \
+            .filter(Certificate.fingerprint == b2a_hex(cert.fingerprint(
+                hashes.SHA1()))) \
             .first()
         if certificate is None:
             certificate = Certificate(cert)
-        return Device(self, bind_data, certificate, properties, transports)
+        return Device(self, bind_data, certificate, transports)
 
 
 class Certificate(Base):
@@ -116,14 +117,14 @@ class Certificate(Base):
 
     @hybrid_property
     def der(self):
-        return self._der.decode('base64')
+        return a2b_base64(self._der)
 
     @der.setter
     def der(self, der):
-        self._der = der.encode('base64')
+        self._der = b2a_base64(der)
 
     def __init__(self, cert):
-        self.fingerprint = cert.fingerprint(hashes.SHA1()).encode('hex')
+        self.fingerprint = b2a_hex(cert.fingerprint(hashes.SHA1()))
         self.der = cert.public_bytes(Encoding.DER)
 
 
@@ -154,16 +155,12 @@ class Device(Base):
         creator=lambda k, v: Property(k, v)
     )
 
-    def __init__(self, user, bind_data, certificate, properties=None,
-                 transports=0):
-        if properties is None:
-            properties = {}
+    def __init__(self, user, bind_data, certificate, transports=0):
         self.handle = uuid4().hex
         self.bind_data = bind_data
-        self.properties.update(properties)
         self.user = user
         self.certificate = certificate
-        self.transports = 0
+        self.transports = transports
 
     def get_descriptor(self, metadata=None):
         authenticated = self.authenticated_at
