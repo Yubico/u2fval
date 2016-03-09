@@ -9,3 +9,9 @@ MANIFEST
 ChangeLog
 man/*.1
 conf/u2fval.conf
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
