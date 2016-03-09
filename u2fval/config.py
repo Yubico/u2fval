@@ -79,4 +79,4 @@ try:
 except:
     logging.basicConfig(level=logging.INFO)
     log = logging.getLogger(__name__)
-    log.exception("Unable to configure logging. Logging to console.")
+    log.warning("Unable to configure logging. Logging to console.")

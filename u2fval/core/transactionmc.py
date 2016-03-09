@@ -26,6 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import memcache
+from binascii import b2a_hex
 
 __all__ = ['MemcachedStore']
 
@@ -38,7 +39,7 @@ class MemcachedStore(object):
 
     def store(self, client_id, user_id, transaction_id, data):
         mc_key = '%s/%s' % (client_id, user_id)
-        transaction_id = transaction_id.encode('hex')
+        transaction_id = b2a_hex(transaction_id)
         keys = self._mc.get(mc_key) or []
         if len(keys) + 1 >= self._max_transactions:
             self._mc.delete('%s_%s' % (mc_key, keys.pop(0)))
@@ -51,7 +52,7 @@ class MemcachedStore(object):
 
     def retrieve(self, client_id, user_id, transaction_id):
         mc_key = '%s/%s' % (client_id, user_id)
-        transaction_id = transaction_id.encode('hex')
+        transaction_id = b2a_hex(transaction_id)
         t_key = '%s_%s' % (mc_key, transaction_id)
         data = self._mc.get_multi([mc_key, t_key])
         keys = data.get(mc_key)

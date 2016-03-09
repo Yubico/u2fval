@@ -29,6 +29,7 @@
 from u2fval.model import User, Transaction
 from u2fval.core.exc import BadInputException
 from datetime import datetime, timedelta
+from binascii import b2a_hex
 
 
 class DBStore(object):
@@ -44,7 +45,7 @@ class DBStore(object):
             .filter(Transaction.created_at < expiration).delete()
 
     def store(self, client_id, user_id, transaction_id, data):
-        transaction_id = transaction_id.encode('hex')
+        transaction_id = b2a_hex(transaction_id)
         user = self._session.query(User) \
             .filter(User.client_id == client_id) \
             .filter(User.name == user_id).first()
@@ -61,7 +62,7 @@ class DBStore(object):
         user.transactions.append(Transaction(transaction_id, data))
 
     def retrieve(self, client_id, user_id, transaction_id):
-        transaction_id = transaction_id.encode('hex')
+        transaction_id = b2a_hex(transaction_id)
         self._delete_expired()
         transaction = self._session.query(Transaction) \
             .filter(Transaction.transaction_id == transaction_id).first()

@@ -13,6 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 
 import os
 import sys
@@ -116,28 +117,28 @@ def handle_client(settings, args):
     cmd = args.action
     if cmd == 'list':
         for client in controller.list_clients():
-            print client
+            print(client)
     else:
         try:
             if cmd == 'create':
                 controller.create_client(args.name, args.appId, args.facets)
-                print 'Created client: %s' % args.name
+                print('Created client: %s' % args.name)
             elif cmd == 'show':
                 client = controller.get_client(args.name)
-                print 'Client: %s' % client.name
-                print 'AppID: %s' % client.app_id
-                print 'FacetIDs:'
+                print('Client: %s' % client.name)
+                print('AppID: %s' % client.app_id)
+                print('FacetIDs:')
                 for facet in client.valid_facets:
-                    print '  %s' % facet
+                    print('  %s' % facet)
             elif cmd == 'update':
                 controller.update_client(args.name, args.appId, args.facets)
-                print 'Updated client: %s' % args.name
+                print('Updated client: %s' % args.name)
             elif cmd == 'delete':
                 controller.delete_client(args.name)
-                print 'Deleted client: %s' % args.name
+                print('Deleted client: %s' % args.name)
             session.commit()
         except Exception as e:
-            print e
+            print(e)
             if args.debug:
                 raise e
             sys.exit(1)
@@ -156,14 +157,14 @@ def handle_run(settings, args):
         controller = ClientController(session)
         controller.get_client(args.client)
         session.close()
-        print "Running in single-client mode for client: '%s'" % args.client
+        print("Running in single-client mode for client: '%s'" % args.client)
         extra_environ['REMOTE_USER'] = args.client
         application = create_application(settings)
     else:
         application = client_from_pathinfo(create_application(settings))
     httpd = make_server(args.interface, args.port, application)
     httpd.base_environ.update(extra_environ)
-    print "Starting server on http://%s:%d..." % (args.interface, args.port)
+    print("Starting server on http://%s:%d..." % (args.interface, args.port))
     httpd.serve_forever()
 
 
@@ -174,18 +175,18 @@ def handle_db(settings, args):
     engine = create_engine(settings['db'], echo=args.debug)
     if args.action == 'init':
         Base.metadata.create_all(engine)
-        print "Database intialized!"
+        print("Database intialized!")
     elif args.action == 'upgrade':
         try:
             from alembic import config, command
         except ImportError:
-            print "Upgrading the database requires alembic"
+            print("Upgrading the database requires alembic")
             return
         conf = config.Config('alembic.ini')
         with engine.begin() as connection:
             conf.attributes['connection'] = connection
             command.upgrade(conf, 'head')
-            print "Database upgraded to latest version"
+            print("Database upgraded to latest version")
 
 
 def handle_args(settings, args):

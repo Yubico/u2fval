@@ -46,7 +46,7 @@ __all__ = ['create_application']
 
 def u2f_error(e):
     server_e = exc.HTTPBadRequest()
-    server_e.body = e.json
+    server_e.body = e.json.encode('utf8')
     server_e.content_type = 'application/json'
     return server_e
 
@@ -221,7 +221,11 @@ def create_application(settings):
     data = settings['metadata']
     # If pointing to an empty or non-existant directory, set to None so that
     # built-in metadata is used.
-    if isinstance(data, basestring) \
+    try:
+        allowed_types = (basestring,)  # Python 2
+    except NameError:
+        allowed_types = (str, bytes)  # Python 3
+    if isinstance(data, allowed_types) \
             and not os.path.isfile(data) \
             and (not os.path.isdir(data) or len(os.listdir(data)) == 0):
         data = None
