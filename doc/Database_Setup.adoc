@@ -48,3 +48,11 @@ command:
 
 Running this command will migrate your database to the current structure.
 Running this command when you're already at the lastest version does nothing.
+
+Migrating a database requires "alembic", which you can get by running:
+
+  $ pip install alembic
+
+Alternatively you can install u2fval with the optional db_migration "extra":
+
+  $ pip install u2fval[db_migration]
