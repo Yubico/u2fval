@@ -1,4 +1,4 @@
-* Version 1.0.0 (unreleased)
+* Version 1.0.0 (released 2016-03-10)
  ** Added support for Python 3 (Python 2 still supported).
  ** Uses python-u2flib-server-4.0.0, which replaces M2Crypto with Cryptography.
  ** Added transports to Device entries.
