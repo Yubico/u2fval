@@ -33,7 +33,8 @@ from u2fval.core.jsobjects import (
 from u2fval.core.exc import U2fException, BadInputException
 from webob.dec import wsgify
 from webob import exc, Response
-from cachetools import lru_cache, LRUCache
+from cachetools import LRUCache
+from cachetools.func import lru_cache
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 import json
