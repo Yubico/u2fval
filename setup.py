@@ -69,7 +69,7 @@ setup(
         'console_scripts': ['u2fval=u2fval.cli:main']
     },
     data_files=data_files,
-    install_requires=['python-u2flib-server>=4.0', 'SQLAlchemy',
+    install_requires=['python-u2flib-server >= 4, <5', 'SQLAlchemy',
                       'WebOb', 'cachetools'],
     test_suite='test',
     tests_require=['WebTest'],
