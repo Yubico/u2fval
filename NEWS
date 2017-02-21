@@ -1,5 +1,7 @@
-* Version 1.0.1 (unreleased)
+* Version 1.0.1 (released 2017-02-21)
  ** Fixed broken cachetools import.
+ ** Fix HTTP responses under Python 3 not specifying a charset.
+ ** Drop Python 2.6 support.
 
 * Version 1.0.0 (released 2016-03-10)
  ** Added support for Python 3 (Python 2 still supported).
