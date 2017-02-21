@@ -2,12 +2,11 @@ language: python
 sudo: false
 
 python:
-  - "2.6"
   - "2.7"
   - "3.3"
   - "3.4"
   - "3.5"
-#  - "pypy" We require PyPy >= 2.6, which is currently not supported by TravisCI
+#  - "pypy" We require PyPy >= 2.7, which is currently not supported by TravisCI
 
 cache:
   directories:
