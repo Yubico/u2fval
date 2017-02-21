@@ -69,6 +69,7 @@ class U2FServerApplication(object):
             resp = self.client(request, client_name)
             if not isinstance(resp, Response):
                 resp = Response(json.dumps(resp),
+                                charset='utf-8',
                                 content_type='application/json')
             return resp
         except Exception as e:
