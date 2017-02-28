@@ -33,12 +33,14 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref, object_session
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
 from uuid import uuid4
 from datetime import datetime
-from hashlib import sha1
-from binascii import b2a_hex, b2a_base64, a2b_base64
+from binascii import b2a_hex
+from base64 import b64encode, b64decode
 import json
 
 
@@ -93,12 +95,10 @@ class User(Base):
         cascade='all, delete-orphan')
 
     def __init__(self, name):
-        if len(name) > 40:
-            self.name = sha1(name).hexdigest()
-        else:
-            self.name = name
+        self.name = name
 
-    def add_device(self, bind_data, cert, transports=0):
+    def add_device(self, bind_data, cert_der, transports=0):
+        cert = x509.load_der_x509_certificate(cert_der, default_backend())
         certificate = object_session(self).query(Certificate) \
             .filter(Certificate.fingerprint == b2a_hex(cert.fingerprint(
                 hashes.SHA1()))) \
@@ -117,11 +117,11 @@ class Certificate(Base):
 
     @hybrid_property
     def der(self):
-        return a2b_base64(self._der)
+        return b64decode(self._der)
 
     @der.setter
     def der(self, der):
-        self._der = b2a_base64(der)
+        self._der = b64encode(der)
 
     def __init__(self, cert):
         self.fingerprint = b2a_hex(cert.fingerprint(hashes.SHA1()))

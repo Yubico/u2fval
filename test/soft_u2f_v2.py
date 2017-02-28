@@ -25,13 +25,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from u2flib_server.utils import (websafe_encode, websafe_decode, sha_256,
-                                 rand_bytes)
-from u2flib_server.jsapi import (RegisterRequest, RegisterResponse,
-                                 SignRequest, SignResponse, ClientData)
-from u2flib_server.yubicommon.compat import int2byte
+from u2flib_server.utils import websafe_encode, sha_256
+from u2flib_server.model import (RegisterRequest, RegisterResponse,
+                                 SignResponse, ClientData, Type, RegisteredKey)
 from base64 import b64decode
+import six
 import struct
+import os
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import PublicFormat, Encoding
@@ -72,7 +72,7 @@ class SoftU2FDevice(object):
         self.keys = {}
         self.counter = 0
 
-    def register(self, request, facet="https://www.example.com"):
+    def register(self, facet, app_id, request):
         """
         RegisterRequest = {
             "version": "U2F_V2",
@@ -89,7 +89,7 @@ class SoftU2FDevice(object):
 
         # Client data
         client_data = ClientData(
-            typ='navigator.id.finishEnrollment',
+            typ=Type.REGISTER.value,
             challenge=request['challenge'],
             origin=facet
         )
@@ -98,31 +98,34 @@ class SoftU2FDevice(object):
 
         # ECC key generation
         priv_key = ec.generate_private_key(CURVE, default_backend())
-        pub_key = priv_key.public_key().public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
+        pub_key = priv_key.public_key().public_bytes(
+            Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
         pub_key = pub_key[-65:]
 
         # Store
-        key_handle = rand_bytes(64)
-        app_param = request.appParam
+        key_handle = os.urandom(64)
+        app_param = sha_256(app_id.encode('idna'))
         self.keys[key_handle] = (priv_key, app_param)
 
         # Attestation signature
-        cert_priv = load_pem_private_key(CERT_PRIV, password=None, backend=default_backend())
+        cert_priv = load_pem_private_key(
+            CERT_PRIV, password=None, backend=default_backend())
         cert = CERT
         data = b'\x00' + app_param + client_param + key_handle + pub_key
         signer = cert_priv.signer(ec.ECDSA(hashes.SHA256()))
         signer.update(data)
         signature = signer.finalize()
 
-        raw_response = (b'\x05' + pub_key + int2byte(len(key_handle)) +
+        raw_response = (b'\x05' + pub_key + six.int2byte(len(key_handle)) +
                         key_handle + cert + signature)
 
         return RegisterResponse(
+            version=request.version,
             registrationData=websafe_encode(raw_response),
             clientData=websafe_encode(client_data),
         )
 
-    def getAssertion(self, request, facet="https://www.example.com"):
+    def getAssertion(self, facet, app_id, challenge, key, touch_byte=1):
         """
         signData = {
             'version': "U2F_V2",
@@ -132,33 +135,31 @@ class SoftU2FDevice(object):
         }
         """
 
-        if not isinstance(request, SignRequest):
-            request = SignRequest(request)
+        key = RegisteredKey.wrap(key)
 
-        if request.version != "U2F_V2":
-            raise ValueError("Unsupported U2F version: %s" % request.version)
+        if key.version != "U2F_V2":
+            raise ValueError("Unsupported U2F version: %s" % key.version)
 
-        key_handle = websafe_decode(request.keyHandle)
-        if key_handle not in self.keys:
+        if key.keyHandle not in self.keys:
             raise ValueError("Unknown key handle!")
 
         # Client data
         client_data = ClientData(
-            typ="navigator.id.getAssertion",
-            challenge=request['challenge'],
+            typ=Type.SIGN.value,
+            challenge=challenge,
             origin=facet
         )
         client_data = client_data.json.encode('utf-8')
         client_param = sha_256(client_data)
 
         # Unwrap:
-        priv_key, app_param = self.keys[key_handle]
+        priv_key, app_param = self.keys[key.keyHandle]
 
         # Increment counter
         self.counter += 1
 
         # Create signature
-        touch = int2byte(1)
+        touch = six.int2byte(touch_byte)
         counter = struct.pack('>I', self.counter)
 
         data = app_param + touch + counter + client_param
@@ -170,5 +171,5 @@ class SoftU2FDevice(object):
         return SignResponse(
             clientData=websafe_encode(client_data),
             signatureData=websafe_encode(raw_response),
-            keyHandle=request.keyHandle
+            keyHandle=key['keyHandle']
         )

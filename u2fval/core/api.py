@@ -27,9 +27,8 @@
 
 from u2fval.model import Device
 from u2fval.core.controller import U2FController
-from u2fval.core.jsobjects import (
-    RegisterRequestData, RegisterResponseData, AuthenticateRequestData,
-    AuthenticateResponseData)
+from u2fval.core.jsobjects import (RegisterRequestData, RegisterResponseData,
+                                   SignRequestData, SignResponseData)
 from u2fval.core.exc import U2fException, BadInputException
 from webob.dec import wsgify
 from webob import exc, Response
@@ -123,13 +122,10 @@ class U2FServerApplication(object):
 
     def register(self, request, controller, user_id):
         if request.method == 'GET':
-            register_requests, sign_requests, descriptors = controller \
-                .register_start(user_id)
-            return RegisterRequestData(
-                registerRequests=register_requests,
-                authenticateRequests=sign_requests,
-                authenticateDescriptors=descriptors
-            )
+            request, descriptors = controller.register_start(user_id)
+            data = RegisterRequestData.wrap(request)
+            data['descriptors'] = descriptors
+            return data
         elif request.method == 'POST':
             data = RegisterResponseData(request.body)
             try:
@@ -145,16 +141,15 @@ class U2FServerApplication(object):
 
     def authenticate(self, request, controller, user_id):
         if request.method == 'GET':
-            sign_requests, descriptors = controller.authenticate_start(user_id)
-            return AuthenticateRequestData(
-                authenticateRequests=sign_requests,
-                authenticateDescriptors=descriptors
-            )
+            request, descriptors = controller.authenticate_start(user_id)
+            data = SignRequestData.wrap(request)
+            data['descriptors'] = descriptors
+            return data
         elif request.method == 'POST':
-            data = AuthenticateResponseData(request.body)
+            data = SignResponseData(request.body)
             try:
                 handle = controller.authenticate_complete(
-                    user_id, data.authenticateResponse)
+                    user_id, data.signResponse)
             except KeyError:
                 raise BadInputException('Malformed request')
             except ValueError as e:

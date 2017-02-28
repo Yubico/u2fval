@@ -115,17 +115,17 @@ class RestApiTest(unittest.TestCase):
 
     def do_register(self, device, properties=None):
         reg_req = self.app.get('/foouser/register',
-                               extra_environ={'REMOTE_USER': 'fooclient'})
-        assert len(reg_req.json['authenticateRequests']) == \
-            len(reg_req.json['authenticateDescriptors'])
+                               extra_environ={'REMOTE_USER': 'fooclient'}).json
+        assert len(reg_req['registeredKeys']) == \
+            len(reg_req['descriptors'])
 
-        reg_resp = device.register(reg_req.json['registerRequests'][0],
-                                   'https://example.com')
+        reg_resp = device.register('https://example.com', reg_req['appId'],
+                                   reg_req['registerRequests'][0]).json
 
         if properties is None:
             properties = {}
         descriptor = self.app.post_json('/foouser/register', {
-            'registerResponse': reg_resp.json,
+            'registerResponse': reg_resp,
             'properties': properties
         }, extra_environ={'REMOTE_USER': 'fooclient'})
         assert descriptor.json['properties'] == properties
@@ -133,12 +133,13 @@ class RestApiTest(unittest.TestCase):
 
     def do_authenticate(self, device, properties=None):
         aut_req = self.app.get('/foouser/authenticate',
-                               extra_environ={'REMOTE_USER': 'fooclient'})
-        aut_resp = device.getAssertion(aut_req.json['authenticateRequests'][0],
-                                       'https://example.com')
+                               extra_environ={'REMOTE_USER': 'fooclient'}).json
+        aut_resp = device.getAssertion('https://example.com', aut_req['appId'],
+                                       aut_req['challenge'],
+                                       aut_req['registeredKeys'][0]).json
         if properties is None:
             properties = {}
         return self.app.post_json('/foouser/authenticate', {
-            'authenticateResponse': aut_resp.json,
+            'signResponse': aut_resp,
             'properties': properties
         }, extra_environ={'REMOTE_USER': 'fooclient'}).json

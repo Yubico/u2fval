@@ -25,14 +25,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from u2flib_server.jsapi import (JSONDict, RegisterRequest, RegisterResponse,
-                                 SignRequest, SignResponse)
+from u2flib_server.model import (JSONDict, RegisterResponse, SignResponse,
+                                 U2fRegisterRequest, U2fSignRequest)
 
 __all__ = [
     'RegisterRequestData',
     'RegisterResponseData',
-    'AuthenticateRequestData',
-    'AuthenticateResponseData'
+    'SignResponseData',
+    'SignResponseData'
 ]
 
 
@@ -43,33 +43,48 @@ class WithProps(object):
         return self.get('properties', {})
 
 
-class RegisterRequestData(JSONDict):
+class WithDescriptors(object):
 
     @property
-    def authenticateRequests(self):
-        return [SignRequest(x) for x in self['authenticateRequests']]
+    def descriptors(self):
+        return [JSONDict.wrap(x) for x in self['descriptors']]
 
-    @property
-    def registerRequests(self):
-        return [RegisterRequest(x) for x in self['registerRequests']]
+
+class RegisterRequestData(U2fRegisterRequest, WithDescriptors):
+    pass
 
 
 class RegisterResponseData(JSONDict, WithProps):
+    _required_fields = ['registerResponse']
 
     @property
     def registerResponse(self):
-        return RegisterResponse(self['registerResponse'])
+        return RegisterResponse.wrap(self['registerResponse'])
+
+    @classmethod
+    def wrap(cls, data):
+        try:
+            return super(RegisterResponseData, cls).wrap(data)
+        except ValueError:
+            response = RegisterResponse.wrap(data)
+            return cls(registerResponse=response.json)
 
 
-class AuthenticateRequestData(JSONDict):
+class SignRequestData(U2fSignRequest, WithDescriptors):
+    pass
+
+
+class SignResponseData(JSONDict, WithProps):
+    _required_fields = ['signResponse']
 
     @property
-    def authenticateRequests(self):
-        return [SignRequest(x) for x in self['authenticateRequests']]
+    def signResponse(self):
+        return SignResponse.wrap(self['signResponse'])
 
-
-class AuthenticateResponseData(JSONDict, WithProps):
-
-    @property
-    def authenticateResponse(self):
-        return SignResponse(self['authenticateResponse'])
+    @classmethod
+    def wrap(cls, data):
+        try:
+            return super(SignResponseData, cls).wrap(data)
+        except ValueError:
+            response = SignResponse.wrap(data)
+            return cls(signResponse=response.json)

@@ -18,6 +18,8 @@ addons:
     packages:
       - libffi-dev
       - libssl-dev
+      - python-dev
+      - python-pip
       - swig
 
 install:
