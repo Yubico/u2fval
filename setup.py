@@ -26,7 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import print_function
-from u2fval.yubicommon.setup import setup
+from release import setup
 import sys
 import os
 import glob
@@ -69,8 +69,8 @@ setup(
         'console_scripts': ['u2fval=u2fval.cli:main']
     },
     data_files=data_files,
-    install_requires=['python-u2flib-server == 5.0.0-dev0', 'SQLAlchemy',
-                      'WebOb', 'cachetools'],
+    install_requires=['python-u2flib-server == 5.0.0-dev0', 'flask',
+                      'flask-sqlalchemy', 'cachetools'],
     test_suite='test',
     tests_require=['WebTest'],
     extras_require={
