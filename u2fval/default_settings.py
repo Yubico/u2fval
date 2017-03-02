@@ -1,5 +1,16 @@
-# Database configuration string
-DATABASE_CONFIGURATION = 'sqlite:///:memory:'
+# U2FVAL settings file
+
+# For testing/debugging only, set to False in production!
+DEBUG = True
+TESTING = True
+
+# Set to False to disable pretty-printing of JSON responses.
+# Note: XMLHttpRequests are never pretty-printed.
+JSONIFY_PRETTYPRINT_REGULAR = True
+
+# Database configuration
+SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db'
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # If True, use memcached for storing registration and authentication requests
 # in progress, instead of persisting them to the database.

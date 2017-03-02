@@ -25,52 +25,53 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import absolute_import
 
-from u2fval.model import User, Transaction
-from u2fval.core.exc import BadInputException
+from .model import db, User, Transaction
 from datetime import datetime, timedelta
 from binascii import b2a_hex
 
 
 class DBStore(object):
 
-    def __init__(self, session, max_transactions=5, ttl=300):
-        self._session = session
+    def __init__(self, max_transactions=5, ttl=300):
         self._max_transactions = max_transactions
         self._ttl = ttl
 
     def _delete_expired(self):
         expiration = datetime.utcnow() - timedelta(seconds=self._ttl)
-        self._session.query(Transaction) \
+        Transaction.query \
             .filter(Transaction.created_at < expiration).delete()
 
     def store(self, client_id, user_id, transaction_id, data):
         transaction_id = b2a_hex(transaction_id)
-        user = self._session.query(User) \
+        user = User.query \
             .filter(User.client_id == client_id) \
             .filter(User.name == user_id).first()
         if user is None:
             user = User(user_id)
             user.client_id = client_id
-            self._session.add(user)
+            db.session.add(user)
         else:
             self._delete_expired()
             # Delete oldest transactions until we have room for one more.
             for transaction in user.transactions \
                     .offset(self._max_transactions - 1).all():
-                self._session.delete(transaction)
+                db.session.delete(transaction)
         user.transactions.append(Transaction(transaction_id, data))
+        db.session.commit()
 
     def retrieve(self, client_id, user_id, transaction_id):
         transaction_id = b2a_hex(transaction_id)
         self._delete_expired()
-        transaction = self._session.query(Transaction) \
+        transaction = Transaction.query \
             .filter(Transaction.transaction_id == transaction_id).first()
         if transaction is None:
-            raise BadInputException('Invalid transaction')
+            raise ValueError('Invalid transaction')
         if transaction.user.name != user_id or \
                 transaction.user.client_id != client_id:
-            raise BadInputException('Transaction not valid for user_id: %s'
-                                    % user_id)
-        self._session.delete(transaction)
+            raise ValueError('Transaction not valid for user_id: %s'
+                             % user_id)
+        db.session.delete(transaction)
+        db.session.commit()
         return transaction.data

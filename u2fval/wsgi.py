@@ -26,12 +26,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """
-WSGI file for u2f-val.
+WSGI file for u2fval.
 To function, clients will need to be specified via the REMOTE_USER WSGI environ
 key. This can be provided by the webserver (using HTTP auth, or hard-coded) or
 by some middleware.
 """
-from u2fval.config import settings
-from u2fval.core.api import create_application
-
-application = create_application(settings)
+from u2fval import app as application

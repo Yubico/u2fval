@@ -25,4 +25,27 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from flask import Flask
+import os
+
 __version__ = "2.0.0-dev0"
+
+
+app = Flask(__name__)
+app.config.from_object('u2fval.default_settings')
+
+# If U2FVAL_SETTINGS is specified, load that file. Otherwise, load a file from
+# /etc/yubico/u2fval/ if it exists.
+silent = True
+conf_file = os.environ.get('U2FVAL_SETTINGS')
+if conf_file:
+    silent = False
+    if not os.path.isabs(conf_file):
+        conf_file = os.path.join(os.getcwd(), conf_file)
+else:
+    conf_file = '/etc/yubico/u2fval/u2fval.conf'
+
+app.config.from_pyfile(conf_file, silent=silent)
+
+import u2fval.view  #noqa
+import u2fval.model  #noqa

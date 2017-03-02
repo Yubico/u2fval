@@ -66,7 +66,9 @@ setup(
     url='https://github.com/Yubico/u2fval',
     license='BSD 2 clause',
     entry_points={
-        'console_scripts': ['u2fval=u2fval.cli:main']
+        'console_scripts': [
+            'u2fval=u2fval.cli:main'
+        ]
     },
     data_files=data_files,
     install_requires=['python-u2flib-server == 5.0.0-dev0', 'flask',

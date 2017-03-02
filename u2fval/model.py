@@ -1,59 +1,32 @@
-# Copyright (c) 2014 Yubico AB
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#    1. Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#    2. Redistributions in binary form must reproduce the above
-#       copyright notice, this list of conditions and the following
-#       disclaimer in the documentation and/or other materials provided
-#       with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+from __future__ import absolute_import
 
-from sqlalchemy import (Column, Integer, String, Text, ForeignKey, Sequence,
-                        Boolean, DateTime, BigInteger, UniqueConstraint)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref, object_session
+from . import app
+from u2flib_server.model import Transport
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm.collections import attribute_mapped_collection
-
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.associationproxy import association_proxy
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
-from uuid import uuid4
-from datetime import datetime
-from binascii import b2a_hex
 from base64 import b64encode, b64decode
+from datetime import datetime
+from uuid import uuid4
+from binascii import b2a_hex
 import json
 
 
-Base = declarative_base()
+db = SQLAlchemy(app)
 
 
-class Client(Base):
+class Client(db.Model):
     __tablename__ = 'clients'
 
-    id = Column(Integer, Sequence('client_id_seq'), primary_key=True)
-    name = Column(String(32), nullable=False, unique=True)
-    app_id = Column(String(256), nullable=False)
-    _valid_facets = Column('valid_facets', Text(), default='[]')
+    id = db.Column(db.Integer, db.Sequence('client_id_seq'), primary_key=True)
+    name = db.Column(db.String(32), nullable=False, unique=True)
+    app_id = db.Column(db.String(256), nullable=False)
+    _valid_facets = db.Column('valid_facets', db.Text(), default='[]')
 
     def __init__(self, name, app_id, facets):
         self.name = name
@@ -71,23 +44,24 @@ class Client(Base):
         self._valid_facets = json.dumps(facets)
 
 
-class User(Base):
+class User(db.Model):
     __tablename__ = 'users'
-    __table_args__ = (UniqueConstraint('client_id', 'name',
-                                       name='_client_user_uc'),)
+    __table_args__ = (db.UniqueConstraint('client_id', 'name',
+                                          name='_client_user_uc'),)
 
-    id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
-    name = Column(String(40), nullable=False)
-    client_id = Column(Integer, ForeignKey('clients.id'))
-    client = relationship(Client, backref=backref('users'))
-    devices = relationship(
+    id = db.Column(db.Integer, db.Sequence('user_id_seq'), primary_key=True)
+    name = db.Column(db.String(40), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    client = db.relationship(Client,
+                             backref=db.backref('users', lazy='dynamic'))
+    devices = db.relationship(
         'Device',
         backref='user',
         order_by='Device.handle',
         collection_class=attribute_mapped_collection('handle'),
         cascade='all, delete-orphan'
     )
-    transactions = relationship(
+    transactions = db.relationship(
         'Transaction',
         backref='user',
         order_by='Transaction.created_at.desc()',
@@ -99,7 +73,7 @@ class User(Base):
 
     def add_device(self, bind_data, cert_der, transports=0):
         cert = x509.load_der_x509_certificate(cert_der, default_backend())
-        certificate = object_session(self).query(Certificate) \
+        certificate = db.session.query(Certificate) \
             .filter(Certificate.fingerprint == b2a_hex(cert.fingerprint(
                 hashes.SHA1()))) \
             .first()
@@ -108,12 +82,13 @@ class User(Base):
         return Device(self, bind_data, certificate, transports)
 
 
-class Certificate(Base):
+class Certificate(db.Model):
     __tablename__ = 'certificates'
 
-    id = Column(Integer, Sequence('certificate_id_seq'), primary_key=True)
-    fingerprint = Column(String(32), nullable=False, unique=True)
-    _der = Column('der', Text(), nullable=False)
+    id = db.Column(db.Integer, db.Sequence('certificate_id_seq'),
+                   primary_key=True)
+    fingerprint = db.Column(db.String(32), nullable=False, unique=True)
+    _der = db.Column('der', db.Text(), nullable=False)
 
     @hybrid_property
     def der(self):
@@ -128,21 +103,21 @@ class Certificate(Base):
         self.der = cert.public_bytes(Encoding.DER)
 
 
-class Device(Base):
+class Device(db.Model):
     __tablename__ = 'devices'
 
-    id = Column(Integer, Sequence('device_id_seq'), primary_key=True)
-    handle = Column(String(32), nullable=False, unique=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    bind_data = Column(Text())
-    certificate_id = Column(Integer, ForeignKey('certificates.id'))
-    certificate = relationship('Certificate')
-    compromised = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    authenticated_at = Column(DateTime)
-    counter = Column(BigInteger)
-    transports = Column(BigInteger)
-    _properties = relationship(
+    id = db.Column(db.Integer, db.Sequence('device_id_seq'), primary_key=True)
+    handle = db.Column(db.String(32), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    bind_data = db.Column(db.Text())
+    certificate_id = db.Column(db.Integer, db.ForeignKey('certificates.id'))
+    certificate = db.relationship('Certificate')
+    compromised = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    authenticated_at = db.Column(db.DateTime)
+    counter = db.Column(db.BigInteger)
+    transports = db.Column(db.BigInteger)
+    _properties = db.relationship(
         'Property',
         backref='device',
         order_by='Property.key',
@@ -167,9 +142,10 @@ class Device(Base):
         if authenticated is not None:
             authenticated = authenticated.isoformat() + 'Z'
 
+        transports = [t.key for t in Transport if t.value & self.transports]
         data = {
             'handle': self.handle,
-            'transports': self.transports,
+            'transports': transports,
             'compromised': self.compromised,
             'created': self.created_at.isoformat() + 'Z',
             'lastUsed': authenticated,
@@ -182,13 +158,13 @@ class Device(Base):
         return data
 
 
-class Property(Base):
+class Property(db.Model):
     __tablename__ = 'properties'
 
-    id = Column(Integer, Sequence('property_id_seq'), primary_key=True)
-    key = Column(String(32))
-    value = Column(Text())
-    device_id = Column(Integer, ForeignKey('devices.id'))
+    id = db.Column(db.Integer, db.Sequence('property_id_seq'), primary_key=True)
+    key = db.Column(db.String(32))
+    value = db.Column(db.Text())
+    device_id = db.Column(db.Integer, db.ForeignKey('devices.id'))
 
     def __init__(self, key, value):
         self.key = key
@@ -197,14 +173,15 @@ class Property(Base):
 
 # Used for storing transactions in the DB instead of memcached
 # See transactiondb.py for more details.
-class Transaction(Base):
+class Transaction(db.Model):
     __tablename__ = 'transactions'
 
-    id = Column(Integer, Sequence('transaction_id_seq'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    transaction_id = Column(String(64), nullable=False, unique=True)
-    _data = Column(Text())
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = db.Column(db.Integer, db.Sequence('transaction_id_seq'),
+                   primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    transaction_id = db.Column(db.String(64), nullable=False, unique=True)
+    _data = db.Column(db.Text())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __init__(self, transaction_id, data):
         self.transaction_id = transaction_id

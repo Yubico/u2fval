@@ -25,14 +25,35 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+__all__ = [
+    'U2fException',
+    'BadInputException',
+    'NoEligibleDevicesException',
+    'DeviceCompromisedException'
+]
 
-from webob.dec import wsgify
+
+class U2fException(Exception):
+    status_code = 400
+    code = -1
+
+    def __init__(self, message, data=None):
+        super(U2fException, self).__init__(message, data)
+        self.message = message
+        self.data = data
 
 
-__all__ = ['client_from_pathinfo']
+class BadInputException(U2fException):
+    code = 10
 
 
-@wsgify.middleware
-def client_from_pathinfo(request, app):
-    request.environ['REMOTE_USER'] = request.path_info_pop()
-    return app
+class NotFoundException(BadInputException):
+    status_code = 404
+
+
+class NoEligibleDevicesException(U2fException):
+    code = 11
+
+
+class DeviceCompromisedException(U2fException):
+    code = 12
