@@ -1,56 +1,53 @@
-from webtest import TestApp
-from u2fval.model import Base
-from u2fval.core.api import create_application
-from u2fval.client.controller import ClientController
-from u2fval.core import exc
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from u2fval import app, exc
+from u2fval.model import db, Client
 from .soft_u2f_v2 import SoftU2FDevice
 import unittest
-import os
+import json
 
 
 class RestApiTest(unittest.TestCase):
 
     def setUp(self):
-        os.environ['U2FVAL_SETTINGS'] = '/dev/null'
-        from u2fval.config import settings
-        settings['allow_untrusted'] = True
+        app.config['TESTING'] = True
+        app.config['ALLOW_UNTRUSTED'] = True
 
-        engine = create_engine(settings['db'])
-        Base.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine)
-        session = Session()
+        db.session.close()
+        db.drop_all()
+        db.create_all()
+        db.session.add(Client('fooclient', 'https://example.com',
+                              ['https://example.com']))
+        db.session.commit()
 
-        self.client_controller = ClientController(session)
-        self.client_controller.create_client('fooclient',
-                                             'https://example.com',
-                                             ['https://example.com'])
-
-        self.app = TestApp(create_application(settings, session))
+        self.app = app.test_client()
 
     def test_call_without_client(self):
-        err = self.app.get('/', status=400)
-        assert err.json['errorCode'] == exc.BadInputException.code
+        err = json.loads(self.app.get('/').data.decode('utf8'))
+        assert err['errorCode'] == exc.BadInputException.code
 
     def test_call_with_invalid_client(self):
-        err = self.app.get('/', status=400,
-                           extra_environ={'REMOTE_USER': 'invalid'})
-        assert err.json['errorCode'] == exc.BadInputException.code
+        err = json.loads(
+            self.app.get('/', environ_base={'REMOTE_USER': 'invalid'}
+                         ).data.decode('utf8'))
+        assert err['errorCode'] == exc.BadInputException.code
 
     def test_get_trusted_facets(self):
-        resp = self.app.get('/', extra_environ={'REMOTE_USER': 'fooclient'})
-        assert 'https://example.com' in resp.json['trustedFacets'][0]['ids']
+        resp = json.loads(
+            self.app.get('/', environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert 'https://example.com' in resp['trustedFacets'][0]['ids']
 
     def test_list_empty_devices(self):
-        resp = self.app.get('/foouser',
-                            extra_environ={'REMOTE_USER': 'fooclient'})
-        assert resp.json == []
+        resp = json.loads(
+            self.app.get('/foouser', environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert resp == []
 
     def test_begin_auth_without_devices(self):
-        err = self.app.get('/foouser/authenticate', status=400,
-                           extra_environ={'REMOTE_USER': 'fooclient'})
-        assert err.json['errorCode'] == exc.NoEligibleDevicesException.code
+        err = json.loads(
+            self.app.get('/foouser/authenticate',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert err['errorCode'] == exc.NoEligibleDevicesException.code
 
     def test_register(self):
         device = SoftU2FDevice()
@@ -68,29 +65,32 @@ class RestApiTest(unittest.TestCase):
     def test_get_properties(self):
         device = SoftU2FDevice()
         descriptor = self.do_register(device, {'foo': 'bar', 'baz': 'foo'})
-        descriptor2 = self.app.get('/foouser/' + descriptor['handle'],
-                                   extra_environ={'REMOTE_USER': 'fooclient'})
-        assert descriptor2.json['properties'] == {'foo': 'bar', 'baz': 'foo'}
+        descriptor2 = json.loads(
+            self.app.get('/foouser/' + descriptor['handle'],
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert descriptor2['properties'] == {'foo': 'bar', 'baz': 'foo'}
 
     def test_get_devices(self):
         self.do_register(SoftU2FDevice())
         self.do_register(SoftU2FDevice())
         self.do_register(SoftU2FDevice())
 
-        resp = self.app.get('/foouser',
-                            extra_environ={'REMOTE_USER': 'fooclient'})
-        descriptors = resp.json
-        assert len(descriptors) == 3
+        resp = json.loads(
+            self.app.get('/foouser', environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert len(resp) == 3
 
     def test_delete_user(self):
         self.do_register(SoftU2FDevice())
         self.do_register(SoftU2FDevice())
         self.do_register(SoftU2FDevice())
         self.app.delete('/foouser',
-                        extra_environ={'REMOTE_USER': 'fooclient'})
-        resp = self.app.get('/foouser',
-                            extra_environ={'REMOTE_USER': 'fooclient'})
-        assert resp.json == []
+                        environ_base={'REMOTE_USER': 'fooclient'})
+        resp = json.loads(
+            self.app.get('/foouser', environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert resp == []
 
     def test_delete_devices(self):
         d1 = self.do_register(SoftU2FDevice())
@@ -98,24 +98,32 @@ class RestApiTest(unittest.TestCase):
         d3 = self.do_register(SoftU2FDevice())
 
         self.app.delete('/foouser/' + d2['handle'],
-                        extra_environ={'REMOTE_USER': 'fooclient'})
-        resp = self.app.get('/foouser',
-                            extra_environ={'REMOTE_USER': 'fooclient'})
-        assert len(resp.json) == 2
+                        environ_base={'REMOTE_USER': 'fooclient'})
+        resp = json.loads(
+            self.app.get('/foouser',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert len(resp) == 2
         self.app.delete('/foouser/' + d1['handle'],
-                        extra_environ={'REMOTE_USER': 'fooclient'})
-        resp = self.app.get('/foouser',
-                            extra_environ={'REMOTE_USER': 'fooclient'})
-        assert resp.json == [d3]
+                        environ_base={'REMOTE_USER': 'fooclient'})
+        resp = json.loads(
+            self.app.get('/foouser',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert resp == [d3]
         self.app.delete('/foouser/' + d3['handle'],
-                        extra_environ={'REMOTE_USER': 'fooclient'})
-        resp = self.app.get('/foouser',
-                            extra_environ={'REMOTE_USER': 'fooclient'})
-        assert resp.json == []
+                        environ_base={'REMOTE_USER': 'fooclient'})
+        resp = json.loads(
+            self.app.get('/foouser',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        assert resp == []
 
     def do_register(self, device, properties=None):
-        reg_req = self.app.get('/foouser/register',
-                               extra_environ={'REMOTE_USER': 'fooclient'}).json
+        reg_req = json.loads(
+            self.app.get('/foouser/register',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
         assert len(reg_req['registeredKeys']) == \
             len(reg_req['descriptors'])
 
@@ -124,22 +132,32 @@ class RestApiTest(unittest.TestCase):
 
         if properties is None:
             properties = {}
-        descriptor = self.app.post_json('/foouser/register', {
-            'registerResponse': reg_resp,
-            'properties': properties
-        }, extra_environ={'REMOTE_USER': 'fooclient'})
-        assert descriptor.json['properties'] == properties
-        return descriptor.json
+        descriptor = json.loads(self.app.post(
+            '/foouser/register',
+            data=json.dumps({
+                'registerResponse': reg_resp,
+                'properties': properties
+            }),
+            environ_base={'REMOTE_USER': 'fooclient'}
+        ).data.decode('utf8'))
+        assert descriptor['properties'] == properties
+        return descriptor
 
     def do_authenticate(self, device, properties=None):
-        aut_req = self.app.get('/foouser/authenticate',
-                               extra_environ={'REMOTE_USER': 'fooclient'}).json
+        aut_req = json.loads(
+            self.app.get('/foouser/authenticate',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
         aut_resp = device.getAssertion('https://example.com', aut_req['appId'],
                                        aut_req['challenge'],
                                        aut_req['registeredKeys'][0]).json
         if properties is None:
             properties = {}
-        return self.app.post_json('/foouser/authenticate', {
-            'signResponse': aut_resp,
-            'properties': properties
-        }, extra_environ={'REMOTE_USER': 'fooclient'}).json
+        return json.loads(self.app.post(
+            '/foouser/authenticate',
+            data=json.dumps({
+                'signResponse': aut_resp,
+                'properties': properties
+            }),
+            environ_base={'REMOTE_USER': 'fooclient'}
+        ).data.decode('utf8'))
