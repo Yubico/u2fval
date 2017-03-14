@@ -145,6 +145,20 @@ def user(user_id):
         return jsonify(descriptors)
 
 
+def _get_registered_key(dev, descriptor):
+    key = json.loads(dev.bind_data)
+    # Only keep appId if different from the "main" one.
+    if key.get('appId') == get_client().app_id:
+        del key['appId']
+    # The 'version' field used to be missing in RegisteredKey.
+    if 'version' not in key:
+        key['version'] = 'U2F_V2'
+    # Use transports from descriptor (which includes metadata)
+    key['transports'] = descriptor['transports']
+
+    return key
+
+
 @app.route('/<user_id>/register', methods=['GET', 'POST'])
 def register(user_id):
     client = get_client()
@@ -179,8 +193,10 @@ def register(user_id):
         descriptors = []
         if user is not None:
             for dev in user.devices.values():
-                registered_keys.append(json.loads(dev.bind_data))
-                descriptors.append(dev.get_descriptor(get_metadata(dev)))
+                descriptor = dev.get_descriptor(get_metadata(dev))
+                descriptors.append(descriptor)
+                key = _get_registered_key(dev, descriptor)
+                registered_keys.append(key)
         request_data = begin_registration(
             client.app_id,
             registered_keys,
@@ -201,12 +217,12 @@ def authenticate(user_id):
         # Handle response
         data = SignResponseData(request.get_json(force=True))
         challenge = data.signResponse.clientData.challenge
-        request_data = store.retrieve(client.id, user_id, challenge)
+        request_data = json.loads(store.retrieve(client.id, user_id, challenge))
         if request_data is None:
             raise exc.NotFoundException('Transaction not found')
         device, counter, presence = complete_authentication(
             request_data, data.signResponse, client.valid_facets)
-        dev = user.devices[device['u2fvalHandle']]
+        dev = user.devices[request_data['handleMap'][device['keyHandle']]]
         if dev.compromised:
             raise exc.BadInputException('Device is compromised')
         if presence == 0:
@@ -231,13 +247,15 @@ def authenticate(user_id):
         challenge = os.urandom(32)
         registered_keys = []
         descriptors = []
+        handle_map = {}
 
         for handle, dev in user.devices.items():
             if not dev.compromised:
-                key = json.loads(dev.bind_data)
-                key['u2fvalHandle'] = dev.handle
+                descriptor = dev.get_descriptor(get_metadata(dev))
+                descriptors.append(descriptor)
+                key = _get_registered_key(dev, descriptor)
                 registered_keys.append(key)
-                descriptors.append(dev.get_descriptor(get_metadata(dev)))
+                handle_map[key['keyHandle']] = dev.handle
 
         if not registered_keys:
             raise exc.NoEligibleDevicesException(
@@ -250,6 +268,7 @@ def authenticate(user_id):
             registered_keys,
             challenge
         )
+        request_data['handleMap'] = handle_map
 
         store.store(client.id, user_id, challenge, request_data.json)
         data = SignRequestData.wrap(request_data.data_for_client)
