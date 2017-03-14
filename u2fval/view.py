@@ -298,3 +298,12 @@ def device(user_id, handle):
         if dev is None:
             raise exc.NotFoundException('Device not found')
     return jsonify(dev.get_descriptor(get_metadata(dev)))
+
+
+@app.route('/<user_id>/<handle>/certificate')
+def device_certificate(user_id, handle):
+    user = get_user(user_id)
+    if user is None:
+        raise exc.NotFoundException('Device not found')
+    dev = user.devices[handle]
+    return dev.certificate.get_pem()

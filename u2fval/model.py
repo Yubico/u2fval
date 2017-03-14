@@ -102,6 +102,10 @@ class Certificate(db.Model):
         self.fingerprint = b2a_hex(cert.fingerprint(hashes.SHA1()))
         self.der = cert.public_bytes(Encoding.DER)
 
+    def get_pem(self):
+        cert = x509.load_der_x509_certificate(self.der, default_backend())
+        return cert.public_bytes(Encoding.PEM)
+
 
 class Device(db.Model):
     __tablename__ = 'devices'
