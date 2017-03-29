@@ -141,6 +141,13 @@ class Device(db.Model):
         self.certificate = certificate
         self.transports = transports
 
+    def update_properties(self, props):
+        for k, v in props.items():
+            if v is None:
+                del self.properties[k]
+            else:
+                self.properties[k] = v
+
     def get_descriptor(self, metadata=None):
         authenticated = self.authenticated_at
         if authenticated is not None:

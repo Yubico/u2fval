@@ -5,6 +5,7 @@ from .model import db, Client, User
 from .transactiondb import DBStore
 from flask import g, request, jsonify
 from werkzeug.contrib.cache import SimpleCache, MemcachedCache
+from u2flib_server.utils import websafe_decode
 from u2flib_server.u2f import (begin_registration, complete_registration,
                                begin_authentication, complete_authentication)
 from u2flib_server.attestation import MetadataProvider, create_resolver
@@ -159,121 +160,162 @@ def _get_registered_key(dev, descriptor):
     return key
 
 
-@app.route('/<user_id>/register', methods=['GET', 'POST'])
-def register(user_id):
+def _register_request(user_id, challenge, properties):
     client = get_client()
     user = get_user(user_id)
-    if request.method == 'POST':
-        # Handle response
-        data = RegisterResponseData(request.get_json(force=True))
-        challenge = data.registerResponse.clientData.challenge
-        request_data = store.retrieve(client.id, user_id, challenge)
-        if request_data is None:
-            raise exc.NotFoundException('Transaction not found')
-        registration, cert = complete_registration(
-            request_data, data.registerResponse, client.valid_facets)
-        attestation = get_attestation(cert)
-        if not app.config['ALLOW_UNTRUSTED'] and not attestation.trusted:
-            raise exc.BadInputException('Device attestation not trusted')
-        if user is None:
-            app.logger.info('Creating user: %s/%s', client.name, user_id)
-            user = User(user_id)
-            client.users.append(user)
-        transports = sum(t.value for t in attestation.transports or [])
-        dev = user.add_device(registration.json, cert, transports)
-        dev.properties.update(data.properties)
-        db.session.commit()
-        app.logger.info('Registered device: %s/%s/%s', client.name, user_id,
-                        dev.handle)
-        return jsonify(dev.get_descriptor(get_metadata(dev)))
-    else:
-        # New request
-        challenge = os.urandom(32)
-        registered_keys = []
-        descriptors = []
-        if user is not None:
-            for dev in user.devices.values():
-                descriptor = dev.get_descriptor(get_metadata(dev))
-                descriptors.append(descriptor)
-                key = _get_registered_key(dev, descriptor)
-                registered_keys.append(key)
-        request_data = begin_registration(
-            client.app_id,
-            registered_keys,
-            challenge
-        )
-        store.store(client.id, user_id, challenge, request_data.json)
+    registered_keys = []
+    descriptors = []
+    if user is not None:
+        for dev in user.devices.values():
+            descriptor = dev.get_descriptor(get_metadata(dev))
+            descriptors.append(descriptor)
+            key = _get_registered_key(dev, descriptor)
+            registered_keys.append(key)
+    request_data = begin_registration(
+        client.app_id,
+        registered_keys,
+        challenge
+    )
+    request_data['properties'] = properties
+    store.store(client.id, user_id, challenge, request_data.json)
 
-        data = RegisterRequestData.wrap(request_data.data_for_client)
-        data['descriptors'] = descriptors
-        return jsonify(data)
+    data = RegisterRequestData.wrap(request_data.data_for_client)
+    data['descriptors'] = descriptors
+    return data
+
+
+def _register_response(user_id, response_data):
+    client = get_client()
+    user = get_user(user_id)
+    register_response = response_data.registerResponse
+    challenge = register_response.clientData.challenge
+    request_data = store.retrieve(client.id, user_id, challenge)
+    if request_data is None:
+        raise exc.NotFoundException('Transaction not found')
+    request_data = json.loads(request_data)
+    registration, cert = complete_registration(
+        request_data, register_response, client.valid_facets)
+    attestation = get_attestation(cert)
+    if not app.config['ALLOW_UNTRUSTED'] and not attestation.trusted:
+        raise exc.BadInputException('Device attestation not trusted')
+    if user is None:
+        app.logger.info('Creating user: %s/%s', client.name, user_id)
+        user = User(user_id)
+        client.users.append(user)
+    transports = sum(t.value for t in attestation.transports or [])
+    dev = user.add_device(registration.json, cert, transports)
+    # Properties from the initial request have a lower precedence.
+    dev.update_properties(request_data['properties'])
+    dev.update_properties(response_data.properties)
+    db.session.commit()
+    app.logger.info('Registered device: %s/%s/%s', client.name, user_id,
+                    dev.handle)
+    response = dev.get_descriptor(get_metadata(dev))
+    response['clientData'] = register_response.clientData
+    return response
+
+
+@app.route('/<user_id>/register', methods=['GET', 'POST'])
+def register(user_id):
+    if request.method == 'POST':
+        data = request.get_json(force=True)
+        if 'registerResponse' in data:
+            # Handle response
+            return jsonify(_register_response(
+                user_id, RegisterResponseData.wrap(data)))
+    else:
+        data = {}
+
+    # Request
+    challenge = websafe_decode(data['challenge']) \
+        if 'challenge' in data else os.urandom(32)
+    properties = data.get('properties', {})
+
+    return jsonify(_register_request(user_id, challenge, properties))
+
+
+def _sign_request(user_id, challenge, properties):
+    client = get_client()
+    user = get_user(user_id)
+    if user is None or len(user.devices) == 0:
+        app.logger.info('User "%s" has no devices registered', user_id)
+        raise exc.NoEligibleDevicesException('No devices registered', [])
+
+    registered_keys = []
+    descriptors = []
+    handle_map = {}
+
+    for handle, dev in user.devices.items():
+        if not dev.compromised:
+            descriptor = dev.get_descriptor(get_metadata(dev))
+            descriptors.append(descriptor)
+            key = _get_registered_key(dev, descriptor)
+            registered_keys.append(key)
+            handle_map[key['keyHandle']] = dev.handle
+
+    if not registered_keys:
+        raise exc.NoEligibleDevicesException(
+            'All devices compromised',
+            [d.get_descriptor() for d in user.devices.values()]
+        )
+
+    request_data = begin_authentication(
+        client.app_id,
+        registered_keys,
+        challenge
+    )
+    request_data['handleMap'] = handle_map
+    request_data['properties'] = properties
+
+    store.store(client.id, user_id, challenge, request_data.json)
+    data = SignRequestData.wrap(request_data.data_for_client)
+    data['descriptors'] = descriptors
+    return data
+
+
+def _sign_response(user_id, response_data):
+    client = get_client()
+    user = get_user(user_id)
+    sign_response = response_data.signResponse
+    challenge = sign_response.clientData.challenge
+    request_data = store.retrieve(client.id, user_id, challenge)
+    if request_data is None:
+        raise exc.NotFoundException('Transaction not found')
+    request_data = json.loads(request_data)
+    device, counter, presence = complete_authentication(
+        request_data, sign_response, client.valid_facets)
+    dev = user.devices[request_data['handleMap'][device['keyHandle']]]
+    if dev.compromised:
+        raise exc.BadInputException('Device is compromised')
+    if presence == 0:
+        raise exc.BadInputException('User presence byte not set')
+    if counter > (dev.counter or -1):
+        dev.counter = counter
+        dev.authenticated_at = datetime.now()
+        dev.update_properties(request_data['properties'])
+        dev.update_properties(response_data.properties)
+        db.session.commit()
+        response = dev.get_descriptor(get_metadata(dev))
+        response['clientData'] = sign_response.clientData
+        return response
 
 
 @app.route('/<user_id>/authenticate', methods=['GET', 'POST'])
 def authenticate(user_id):
-    client = get_client()
-    user = get_user(user_id)
     if request.method == 'POST':
-        # Handle response
-        data = SignResponseData(request.get_json(force=True))
-        challenge = data.signResponse.clientData.challenge
-        request_data = json.loads(store.retrieve(client.id, user_id, challenge))
-        if request_data is None:
-            raise exc.NotFoundException('Transaction not found')
-        device, counter, presence = complete_authentication(
-            request_data, data.signResponse, client.valid_facets)
-        dev = user.devices[request_data['handleMap'][device['keyHandle']]]
-        if dev.compromised:
-            raise exc.BadInputException('Device is compromised')
-        if presence == 0:
-            raise exc.BadInputException('User presence byte not set')
-        if counter > (dev.counter or -1):
-            dev.counter = counter
-            dev.authenticated_at = datetime.now()
-            dev.properties.update(data.properties)
-            db.session.commit()
-            return jsonify(dev.get_descriptor(get_metadata(dev)))
-        else:
-            dev.compromised = True
-            db.session.commit()
-            raise exc.DeviceCompromisedException('Device counter mismatch',
-                                                 dev.get_descriptor())
+        data = request.get_json(force=True)
+        if 'signResponse' in data:
+            # Handle response
+            return jsonify(_sign_response(user_id, SignResponseData.wrap(data)))
     else:
-        # New request
-        if user is None or len(user.devices) == 0:
-            app.logger.info('User "%s" has no devices registered', user_id)
-            raise exc.NoEligibleDevicesException('No devices registered', [])
+        data = {}
 
-        challenge = os.urandom(32)
-        registered_keys = []
-        descriptors = []
-        handle_map = {}
+    # Request
+    challenge = websafe_decode(data['challenge']) \
+        if 'challenge' in data else os.urandom(32)
+    properties = data.get('properties', {})
 
-        for handle, dev in user.devices.items():
-            if not dev.compromised:
-                descriptor = dev.get_descriptor(get_metadata(dev))
-                descriptors.append(descriptor)
-                key = _get_registered_key(dev, descriptor)
-                registered_keys.append(key)
-                handle_map[key['keyHandle']] = dev.handle
-
-        if not registered_keys:
-            raise exc.NoEligibleDevicesException(
-                'All devices compromised',
-                [d.get_descriptor() for d in user.devices.values()]
-            )
-
-        request_data = begin_authentication(
-            client.app_id,
-            registered_keys,
-            challenge
-        )
-        request_data['handleMap'] = handle_map
-
-        store.store(client.id, user_id, challenge, request_data.json)
-        data = SignRequestData.wrap(request_data.data_for_client)
-        data['descriptors'] = descriptors
-        return jsonify(data)
+    return jsonify(_sign_request(user_id, challenge, properties))
 
 
 @app.route('/<user_id>/<handle>', methods=['GET', 'POST', 'DELETE'])
@@ -292,7 +334,7 @@ def device(user_id, handle):
     elif request.method == 'POST':
         if dev is None:
             raise exc.NotFoundException('Device not found')
-        dev.properties.update(request.get_json(force=True))
+        dev.update_properties(request.get_json(force=True))
         db.session.commit()
     else:
         if dev is None:
