@@ -79,8 +79,7 @@ setup(
     test_suite='test',
     tests_require=['WebTest'],
     extras_require={
-        'memcache': ['python-memcached'],
-        'db_migration': ['alembic']
+        'memcache': ['python-memcached']
     },
     classifiers=[
         'License :: OSI Approved :: BSD License',

@@ -1,0 +1,31 @@
+== Migrating From Older Versions
+When installing a new major version (X.0.0) of U2FVAL you may have to make some
+adjustments before it is usable. This documents lists backwards incompatible
+changes between versions.
+
+=== Version 2.0.0
+==== General changes
+The DATABASE_CONNECTION setting has been renamed to SQLALCHEMY_DATABASE_URI.
+The old name continues to work for now, but will log a warning.
+
+==== Command line tool changes
+The command line utility has been rewritten, and the arguments may have changed
+slightly. Check the output of `u2fval --help` or `u2fval [command] --help` for
+more details. Providing a configuration file to use can now be done via the
+U2FVAL_SETTINGS environment variable.
+
+==== API changes
+This version uses a new version of the U2FVAL API. For a full specification,
+see https://developers.yubico.com/U2F/Standalone_servers/U2FVAL_REST_API.html.
+The structure of the responses have been changed to align with the FIDO U2F
+Javascript API v1.1
+
+==== Database changes
+No changes have been made to the database structure, but the method used to
+calculate certificate fingerprints has changed. To convert existing data to the
+new format, run the recalc-fingerprints.py script included with this release:
+
+  $ python recalc-fingerprints.py "sqlite:////path/to/database.db"
+
+Replace the database connection string with one for your database. Note that
+the script requires the 2.0.0 version of u2fval to be installed to run.

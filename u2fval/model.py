@@ -44,6 +44,13 @@ class Client(db.Model):
         self._valid_facets = json.dumps(facets)
 
 
+def _calculate_fingerprint(cert):
+    # The reason we truncate to 32 characters is that we don't want to have to
+    # modify the DB columns. This gives us 24 bytes, which is sufficient for
+    # our purposes.
+    return b64encode(cert.fingerprint(hashes.SHA256()))[:32]
+
+
 class User(db.Model):
     __tablename__ = 'users'
     __table_args__ = (db.UniqueConstraint('client_id', 'name',
@@ -74,8 +81,7 @@ class User(db.Model):
     def add_device(self, bind_data, cert_der, transports=0):
         cert = x509.load_der_x509_certificate(cert_der, default_backend())
         certificate = db.session.query(Certificate) \
-            .filter(Certificate.fingerprint == b2a_hex(cert.fingerprint(
-                hashes.SHA1()))) \
+            .filter(Certificate.fingerprint == _calculate_fingerprint(cert)) \
             .first()
         if certificate is None:
             certificate = Certificate(cert)
@@ -99,7 +105,7 @@ class Certificate(db.Model):
         self._der = b64encode(der)
 
     def __init__(self, cert):
-        self.fingerprint = b2a_hex(cert.fingerprint(hashes.SHA1()))
+        self.fingerprint = _calculate_fingerprint(cert)
         self.der = cert.public_bytes(Encoding.DER)
 
     def get_pem(self):
