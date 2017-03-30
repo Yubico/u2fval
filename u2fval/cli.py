@@ -6,6 +6,7 @@ from werkzeug.wsgi import pop_path_info
 from . import app
 from .model import db, Client
 from six.moves.urllib_parse import urlparse
+import os
 import re
 import sys
 import click
@@ -23,9 +24,25 @@ def ensure_valid_name(name):
                          '(dash)')
 
 
-@click.group()
-def cli():
-    pass  # os.environ['FLASK_APP'] = 'u2fval2'
+CLICK_CONTEXT_SETTINGS = dict(
+    help_option_names=['-h', '--help'],
+    max_content_width=999
+)
+
+
+@click.group(context_settings=CLICK_CONTEXT_SETTINGS)
+@click.option('--config', help='Specify configuration file.')
+def cli(config):
+    """
+    u2fval command line tool
+
+    Specify a configuration file to use by setting the U2FVAL_SETTINGS
+    environment variable (or use the --config option).
+
+    Use u2fval COMMMAND --help for help on a specific command.
+    """
+    if config:
+        app.config.from_pyfile(os.path.abspath(config))
 
 
 @cli.group('db')
@@ -37,11 +54,6 @@ def database():
 def init():
     db.create_all()
     click.echo('Database initialized!')
-
-
-@database.command()
-def upgrade():
-    click.echo('TODO')
 
 
 @cli.group()
