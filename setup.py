@@ -71,8 +71,11 @@ setup(
         ]
     },
     data_files=data_files,
-    install_requires=['python-u2flib-server == 5.0.0-dev0', 'flask',
-                      'flask-sqlalchemy', 'cachetools'],
+    install_requires=[
+        'python-u2flib-server >= 5, <6',
+        'flask',
+        'flask-sqlalchemy'
+    ],
     test_suite='test',
     tests_require=['WebTest'],
     extras_require={
