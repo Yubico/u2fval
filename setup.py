@@ -77,7 +77,6 @@ setup(
         'flask-sqlalchemy'
     ],
     test_suite='test',
-    tests_require=['WebTest'],
     extras_require={
         'memcache': ['python-memcached']
     },
