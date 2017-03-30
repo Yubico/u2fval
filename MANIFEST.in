@@ -4,4 +4,5 @@ include NEWS
 include ChangeLog
 include doc/*
 include man/*
+include recalc-fingerprints.py
 recursive-include conf *
