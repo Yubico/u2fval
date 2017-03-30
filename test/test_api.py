@@ -243,6 +243,37 @@ class RestApiTest(unittest.TestCase):
 
         self.assertEqual(desc1['handle'], desc2['handle'])
 
+    def test_device_compromised_on_counter_error(self):
+        dev = SoftU2FDevice()
+        self.do_register(dev)
+        self.do_authenticate(dev)
+        self.do_authenticate(dev)
+        self.do_authenticate(dev)
+        dev.counter = 1
+
+        aut_req = json.loads(
+            self.app.get('/foouser/authenticate',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        aut_resp = dev.getAssertion('https://example.com', aut_req['appId'],
+                                    aut_req['challenge'],
+                                    aut_req['registeredKeys'][0]).json
+        resp = self.app.post(
+            '/foouser/authenticate',
+            data=json.dumps({
+                'signResponse': aut_resp
+            }),
+            environ_base={'REMOTE_USER': 'fooclient'}
+        )
+
+        self.assertEqual(400, resp.status_code)
+        self.assertEqual(12, json.loads(resp.data.decode('utf-8'))['errorCode'])
+
+        resp = self.app.get('/foouser/authenticate',
+                            environ_base={'REMOTE_USER': 'fooclient'})
+        self.assertEqual(400, resp.status_code)
+        self.assertEqual(11, json.loads(resp.data.decode('utf-8'))['errorCode'])
+
     def do_register(self, device, properties=None):
         reg_req = json.loads(
             self.app.get('/foouser/register',

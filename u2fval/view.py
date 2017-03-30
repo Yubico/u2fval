@@ -219,19 +219,20 @@ def _register_response(user_id, response_data):
 def register(user_id):
     if request.method == 'POST':
         data = request.get_json(force=True)
-        if 'registerResponse' in data:
-            # Handle response
-            return jsonify(_register_response(
-                user_id, RegisterResponseData.wrap(data)))
     else:
         data = {}
 
-    # Request
-    challenge = websafe_decode(data['challenge']) \
-        if 'challenge' in data else os.urandom(32)
-    properties = data.get('properties', {})
+    if 'registerResponse' in data:
+        # Response
+        return jsonify(_register_response(
+            user_id, RegisterResponseData.wrap(data)))
+    else:
+        # Request
+        challenge = websafe_decode(data['challenge']) \
+            if 'challenge' in data else os.urandom(32)
+        properties = data.get('properties', {})
 
-    return jsonify(_register_request(user_id, challenge, properties))
+        return jsonify(_register_request(user_id, challenge, properties))
 
 
 def _sign_request(user_id, challenge, properties):
@@ -286,7 +287,8 @@ def _sign_response(user_id, response_data):
         request_data, sign_response, client.valid_facets)
     dev = user.devices[request_data['handleMap'][device['keyHandle']]]
     if dev.compromised:
-        raise exc.BadInputException('Device is compromised')
+        raise exc.DeviceCompromisedException('Device is compromised',
+                                             dev.get_descriptor())
     if presence == 0:
         raise exc.BadInputException('User presence byte not set')
     if counter > (dev.counter or -1):
@@ -298,24 +300,30 @@ def _sign_response(user_id, response_data):
         response = dev.get_descriptor(get_metadata(dev))
         response['clientData'] = sign_response.clientData
         return response
+    else:
+        dev.compromised = True
+        db.session.commit()
+        raise exc.DeviceCompromisedException('Device counter mismatch',
+                                             dev.get_descriptor())
 
 
 @app.route('/<user_id>/authenticate', methods=['GET', 'POST'])
 def authenticate(user_id):
     if request.method == 'POST':
         data = request.get_json(force=True)
-        if 'signResponse' in data:
-            # Handle response
-            return jsonify(_sign_response(user_id, SignResponseData.wrap(data)))
     else:
         data = {}
 
-    # Request
-    challenge = websafe_decode(data['challenge']) \
-        if 'challenge' in data else os.urandom(32)
-    properties = data.get('properties', {})
+    if 'signResponse' in data:
+        # Response
+        return jsonify(_sign_response(user_id, SignResponseData.wrap(data)))
+    else:
+        # Request
+        challenge = websafe_decode(data['challenge']) \
+            if 'challenge' in data else os.urandom(32)
+        properties = data.get('properties', {})
 
-    return jsonify(_sign_request(user_id, challenge, properties))
+        return jsonify(_sign_request(user_id, challenge, properties))
 
 
 @app.route('/<user_id>/<handle>', methods=['GET', 'POST', 'DELETE'])
