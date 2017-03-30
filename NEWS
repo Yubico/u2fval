@@ -1,4 +1,12 @@
-* Version 1.0.2 (unreleased)
+* Version 2.0.0 (unreleased)
+ ** Major version: New API is backwards compatible!
+ ** Now implements the U2FVAL API version 2, which is aligned with the FIDO
+    Javascript API 1.1.
+ ** Now using Flask.
+ ** New features:
+    - Challenges can now be specified by the caller.
+    - Properties can be set when generating a Register/Sign request, which will
+      be stored on completion of the request.
 
 * Version 1.0.1 (released 2017-02-21)
  ** Fixed broken cachetools import.
