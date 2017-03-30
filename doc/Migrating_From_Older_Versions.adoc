@@ -8,6 +8,15 @@ changes between versions.
 The DATABASE_CONNECTION setting has been renamed to SQLALCHEMY_DATABASE_URI.
 The old name continues to work for now, but will log a warning.
 
+The "wsgi.py" file has been removed from this release. You can simply provide
+your own WSGI file to run the application in a WSGI container. At minimal, such
+a file should contain:
+
+  from u2fval import app as application
+
+See link:Apache_Deployment.adoc[Apache Deployment] for an example of how this
+can be done.
+
 ==== Command line tool changes
 The command line utility has been rewritten, and the arguments may have changed
 slightly. Check the output of `u2fval --help` or `u2fval [command] --help` for

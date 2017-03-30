@@ -1,0 +1,40 @@
+== Installation
+The recommended way to install the Yubico U2F Validation Server is by using pip
+in a virtual environment (virtualenv). This document will guide you through
+the setup and configuration of the server. It assumes you are familliar with
+using virtualenv in Python.
+
+=== Build dependencies
+To build the project and its dependencies, you first need to install some build
+dependencies. On Debian or Ubuntu this can be done by running:
+
+  $ sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-virtualenv
+
+=== Create a virtual environment
+To begin, create a new virtual environment and install u2fval:
+
+  $ virtualenv venv
+  $ source venv/bin/activate
+  (venv) $ pip install -U pip
+  (venv) $ pip install u2fval
+
+=== Configuration
+By default, u2fval will use the file `/etc/yubico/u2fval/u2fval.conf` for
+configuration. This can be overridden by setting the U2FVAL_SETTINGS
+environment variable to point to an alternative location. For a sample of this
+file, you can look at the `u2fval/default_settings.py` that comes with the
+release.
+
+To use custom U2F device metadata, you can place metadata json files in
+`/etc/yubico/u2fval/metadata/` or whatever location you specify in the
+configuration file.
+
+
+=== Next steps
+Before you can use the server you need to configure and initialize a database.
+See link:Database_Setup.adoc[Database Setup] for an example on how to do that.
+
+Once the database is set up, you will need to create at least one client, and
+deploy the server in some way. See
+link:Apache_Deployment.adoc[Apache Deployment] for an example on how to do
+that.

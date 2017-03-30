@@ -3,12 +3,18 @@ The Yubico U2F Validation Server requires an SQL database for storing data.
 Internally, u2fval uses http://www.sqlalchemy.org[SQLAlchemy] to connect to
 the database. Depending on which SQL database you use you might need to install
 an adapter for it. For a list of supported databases, and the required adapters,
-see http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html[SQLAlchemy Engine Configuration].
+see http://docs.sqlalchemy.org/en/latest/core/engines.html[SQLAlchemy Engine Configuration].
 
 This document assumes you are using Ubuntu with the http://www.postgresql.org[Postgresql]
-database. Start by installing Progresql and the needed adapter:
+database. Start by installing Postgresql:
 
-  # apt-get install postgresql python-psycopg2
+  # apt-get install postgresql
+
+You will also need to install the required database adapter (assuming you're
+using a virtualenv):
+
+  $ source venv/bin/activate
+  (venv) $ pip install psycopg2
 
 To create a user and a database for u2fval, start by opening the psql prompt:
 
@@ -25,13 +31,16 @@ and the password "password". This gives us the following connection string:
 
   postgresql://u2fval:password@localhost/u2fval
 
-Edit the DATABASE_CONFIGURATION setting in the /etc/yubico/u2fval/u2fval.conf
-file with the connection string, so it reads:
+Edit the SQLALCHEMY_DATABASE_URI setting in the
+`/etc/yubico/u2fval/u2fval.conf` file with the connection string, so it reads:
 
-  DATABASE_CONFIGURATION = 'postgresql://u2fval:password@localhost/u2fval'
+  SQLALCHEMY_DATABASE_URI = 'postgresql://u2fval:password@localhost/u2fval'
 
 Save and close the file, and initialize the database for use with u2fval:
 
-  # u2fval db init
+  (venv) $ u2fval db init
+
+You can optionally specify a different configuration file to use, by setting
+the U2FVAL_SETTINGS environment variable.
 
 That's it, the database is now configured and ready.

@@ -5,15 +5,18 @@ for running it under the Apache2 Web Server, using mod_wsgi.
 
 === Prerequisites ===
 Before starting, it is assumed that you have installed u2fval and configured it
-with a compatible SQL database (see link:Database_Setup.adoc[Database Setup]).
+with a compatible SQL database (see link:Installation.adoc[Installation] and
+link:Database_Setup.adoc[Database Setup]). It is assumed that u2fval is
+installed in a virtualenv located at `/home/someuser/u2fval/venv`. Change the
+path in accordance to your setup.
 
 === Installation ===
 Refer to the http://httpd.apache.org[Apache Web Server documentation] for
 instructions on setting up the Apache Web Server on your platform. This
-document assumes you are running Ubuntu 14.04, and some of the commands might
-be slightly different on other platforms. To install Apache and mod_wsgi (as
-well as some utilities that we will be using) on Ubuntu, run the following
-command:
+document assumes you are running Ubuntu 14.04 or later, and some of the
+commands might be slightly different on other platforms. To install Apache and
+mod_wsgi (as well as some utilities that we will be using) on Ubuntu, run the
+following command:
 
   # apt-get install apache2 apache2-utils libapache2-mod-wsgi
 
@@ -32,32 +35,38 @@ To enable it, run:
   # a2enmod auth_digest
 
 === Configuration ===
-Create the file: /etc/apache2/conf-available/u2fval.conf and add the following
+Create the file `/home/someuser/u2fval/u2fval.wsgi` and add the following content:
+[source,python]
+----
+from u2fval import app as application
+----
+
+Create the file: `/etc/apache2/conf-available/u2fval.conf` and add the following
 content to it:
 [source,xml]
 ----
 <IfModule mod_wsgi.c>
-  WSGIScriptAlias /wsapi/u2fval /usr/local/lib/python2.7/dist-packages/u2fval/wsgi.py
-  # Needed since M2Crypto sometimes deadlocks without it:
-  WSGIApplicationGroup %{GLOBAL}
+ 	WSGIDaemonProcess u2fval python-home=/home/someuser/u2fval/venv
+	WSGIApplicationGroup %{GLOBAL}
 
-  <Location /wsapi/u2fval/>
-     AuthType Digest
-     AuthName "u2fval"
-     AuthUserFile /etc/yubico/u2fval/clients.htdigest
-     Require valid-user
-  </Location>
+	WSGIScriptAlias /wsapi/u2fval /home/someuser/u2fval/u2fval.wsgi process-group=u2fval
+
+	<Directory /home/someuser/u2fval/>
+		Options None
+		AllowOverride None
+		AuthType Digest
+		AuthName "u2fval"
+		AuthUserFile /home/someuser/u2fval/clients.htdigest
+		Require valid-user
+	</Directory>
 </IfModule>
 ----
-
-Depending on your installation of u2fval, the location of the wsgi.py file may
-differ.
 
 The above configuration points out an AuthUserFile which does not yet exist.
 This is where client credentials will be stored, so let's create the file and
 add our first client now:
 
-  # htdigest -c /etc/yubico/u2fval/clients.htdigest "u2fval" testclient
+  $ htdigest -c /home/someuser/u2fval/clients.htdigest "u2fval" testclient
 
 You will now be prompted for a password for the client. Once entered, the
 client can be authenticated using the _testclient_ username, with the password
@@ -67,7 +76,7 @@ without the -c argument (which is only needed to create the file).
 For each created user you also need to create the corresponding client in the
 u2fval database. This is done by using the u2fval command line tool:
 
-  # u2fval client create testclient -a http://example.com -f http://example.com
+  $ u2fval client create testclient http://example.com
 
 The client name _testclient_ above needs to match the name used for the
 htdigest command. The -a argument defines the application ID of the client, and
