@@ -47,11 +47,11 @@ else:
 
 app.config.from_pyfile(conf_file, silent=silent)
 
-# The previous version used DATABASE_CONNECTION.
-db_conn = app.config.get('DATABASE_CONNECTION')
+# The previous version used DATABASE_CONFIGURATION.
+db_conn = app.config.get('DATABASE_CONFIGURATION')
 if db_conn is not None:
-    app.logger.warn('The DATABASE_CONNECTION setting is deprecated, you should '
-                    'use SQLALCHEMY_DATABASE_URI instead!')
+    app.logger.warn('The DATABASE_CONFIGURATION setting is deprecated, you '
+                    'should use SQLALCHEMY_DATABASE_URI instead!')
     app.config['SQLALCHEMY_DATABASE_URI'] = db_conn
 
 import u2fval.view  #noqa

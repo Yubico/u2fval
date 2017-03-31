@@ -5,7 +5,7 @@ changes between versions.
 
 === Version 2.0.0
 ==== General changes
-The DATABASE_CONNECTION setting has been renamed to SQLALCHEMY_DATABASE_URI.
+The DATABASE_CONFIGURATION setting has been renamed to SQLALCHEMY_DATABASE_URI.
 The old name continues to work for now, but will log a warning.
 
 The "wsgi.py" file has been removed from this release. You can simply provide
