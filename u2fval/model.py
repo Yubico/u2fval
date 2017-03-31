@@ -45,7 +45,7 @@ class Client(db.Model):
 
 
 def _calculate_fingerprint(cert):
-    return b2a_hex(cert.fingerprint(hashes.SHA256()))
+    return b2a_hex(cert.fingerprint(hashes.SHA256())).decode('ascii')
 
 
 class User(db.Model):
@@ -140,7 +140,7 @@ class Device(db.Model):
     )
 
     def __init__(self, user, bind_data, certificate, transports=0):
-        self.handle = b2a_hex(os.urandom(16))
+        self.handle = b2a_hex(os.urandom(16)).decode('ascii')
         self.bind_data = bind_data
         self.user = user
         self.certificate = certificate
