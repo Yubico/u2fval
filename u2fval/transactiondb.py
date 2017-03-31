@@ -28,6 +28,7 @@
 from __future__ import absolute_import
 
 from .model import db, User, Transaction
+from u2flib_server.utils import sha_256
 from datetime import datetime, timedelta
 from binascii import b2a_hex
 
@@ -44,7 +45,7 @@ class DBStore(object):
             .filter(Transaction.created_at < expiration).delete()
 
     def store(self, client_id, user_id, transaction_id, data):
-        transaction_id = b2a_hex(transaction_id)
+        transaction_id = b2a_hex(sha_256(transaction_id))
         user = User.query \
             .filter(User.client_id == client_id) \
             .filter(User.name == user_id).first()
@@ -62,7 +63,7 @@ class DBStore(object):
         db.session.commit()
 
     def retrieve(self, client_id, user_id, transaction_id):
-        transaction_id = b2a_hex(transaction_id)
+        transaction_id = b2a_hex(sha_256(transaction_id))
         self._delete_expired()
         transaction = Transaction.query \
             .filter(Transaction.transaction_id == transaction_id).first()

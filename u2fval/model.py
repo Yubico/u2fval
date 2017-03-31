@@ -11,9 +11,10 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
 from base64 import b64encode, b64decode
+from binascii import b2a_hex
 from datetime import datetime
-from uuid import uuid4
 import json
+import os
 
 
 db = SQLAlchemy(app)
@@ -23,7 +24,7 @@ class Client(db.Model):
     __tablename__ = 'clients'
 
     id = db.Column(db.Integer, db.Sequence('client_id_seq'), primary_key=True)
-    name = db.Column(db.String(32), nullable=False, unique=True)
+    name = db.Column(db.String(40), nullable=False, unique=True)
     app_id = db.Column(db.String(256), nullable=False)
     _valid_facets = db.Column('valid_facets', db.Text(), default='[]')
 
@@ -44,10 +45,7 @@ class Client(db.Model):
 
 
 def _calculate_fingerprint(cert):
-    # The reason we truncate to 32 characters is that we don't want to have to
-    # modify the DB columns. This gives us 24 bytes, which is sufficient for
-    # our purposes.
-    return b64encode(cert.fingerprint(hashes.SHA256()))[:32]
+    return b2a_hex(cert.fingerprint(hashes.SHA256()))
 
 
 class User(db.Model):
@@ -92,7 +90,9 @@ class Certificate(db.Model):
 
     id = db.Column(db.Integer, db.Sequence('certificate_id_seq'),
                    primary_key=True)
-    fingerprint = db.Column(db.String(32), nullable=False, unique=True)
+    # The fingerprint field is larger than needed, to accomodate longer
+    # fingerprints in the future.
+    fingerprint = db.Column(db.String(128), nullable=False, unique=True)
     _der = db.Column('der', db.Text(), nullable=False)
 
     @hybrid_property
@@ -140,7 +140,7 @@ class Device(db.Model):
     )
 
     def __init__(self, user, bind_data, certificate, transports=0):
-        self.handle = uuid4().hex
+        self.handle = b2a_hex(os.urandom(16))
         self.bind_data = bind_data
         self.user = user
         self.certificate = certificate
@@ -179,7 +179,7 @@ class Property(db.Model):
 
     id = db.Column(db.Integer, db.Sequence('property_id_seq'),
                    primary_key=True)
-    key = db.Column(db.String(32))
+    key = db.Column(db.String(40))
     value = db.Column(db.Text())
     device_id = db.Column(db.Integer, db.ForeignKey('devices.id'))
 
@@ -188,8 +188,6 @@ class Property(db.Model):
         self.value = value
 
 
-# Used for storing transactions in the DB instead of memcached
-# See transactiondb.py for more details.
 class Transaction(db.Model):
     __tablename__ = 'transactions'
 

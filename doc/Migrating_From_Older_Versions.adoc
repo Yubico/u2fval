@@ -27,14 +27,26 @@ U2FVAL_SETTINGS environment variable.
 This version uses a new version of the U2FVAL API. For a full specification,
 see https://developers.yubico.com/U2F/Standalone_servers/U2FVAL_REST_API.html.
 The structure of the responses have been changed to align with the FIDO U2F
-Javascript API v1.1
+JavaScript API v1.1
 
 ==== Database changes
-No changes have been made to the database structure, but the method used to
-calculate certificate fingerprints has changed. To convert existing data to the
-new format, run the recalc-fingerprints.py script included with this release:
+Some database columns have changed in this version. To migrate existing data
+from an older version of U2FVAL follow these steps:
+
+1. Dump the data from the database using mysqldump, pg_dump or similar for your
+   database. Dump the data only, not the table structure. Verify the data!
+2. Drop the tables from the database, then re-create them using the
+   `u2fval db init` command from the new version of u2fval.
+3. Import the data from step 1 into the new tables.
+4. Run the recalculate-fingerprints.py script with the connection string for
+   your database (located in the source .tar.gz):
 
   $ python recalc-fingerprints.py "sqlite:////path/to/database.db"
 
-Replace the database connection string with one for your database. Note that
-the script requires the 2.0.0 version of u2fval to be installed to run.
+Detailed changes:
+- The `name` column in the `clients` table has been resized to 40 characters to
+  be in line with other name columns.
+- The `key` column in the `properties` table has been resized to 40 characters
+  to be in line with other name columns.
+- The `fingerprint` column in the `certificates` table has been resized to 128
+  characters to accommodate larger fingerprints.
