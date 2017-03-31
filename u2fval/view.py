@@ -211,9 +211,7 @@ def _register_response(user_id, response_data):
     db.session.commit()
     app.logger.info('Registered device: %s/%s/%s', client.name, user_id,
                     dev.handle)
-    response = dev.get_descriptor(get_metadata(dev))
-    response['clientData'] = register_response.clientData
-    return response
+    return dev.get_descriptor(get_metadata(dev))
 
 
 @app.route('/<user_id>/register', methods=['GET', 'POST'])
@@ -298,9 +296,7 @@ def _sign_response(user_id, response_data):
         dev.update_properties(request_data['properties'])
         dev.update_properties(response_data.properties)
         db.session.commit()
-        response = dev.get_descriptor(get_metadata(dev))
-        response['clientData'] = sign_response.clientData
-        return response
+        return dev.get_descriptor(get_metadata(dev))
     else:
         dev.compromised = True
         db.session.commit()

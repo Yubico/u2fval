@@ -136,9 +136,6 @@ class RestApiTest(unittest.TestCase):
                          environ_base={'REMOTE_USER': 'fooclient'}
                          ).data.decode('utf8'))
         self.assertEqual(len(resp), 1)
-        # ClientData is returned on register, but is not ordinarily part of the
-        # device descriptor.
-        del d3['clientData']
         self.assertEqual(d3, resp[0])
         self.app.delete('/foouser/' + d3['handle'],
                         environ_base={'REMOTE_USER': 'fooclient'})
@@ -210,6 +207,8 @@ class RestApiTest(unittest.TestCase):
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
 
+        self.assertEqual(reg_req['registerRequests'][0]['challenge'],
+                         'ThisIsAChallenge')
         reg_resp = device.register('https://example.com', reg_req['appId'],
                                    reg_req['registerRequests'][0]).json
 
@@ -220,7 +219,6 @@ class RestApiTest(unittest.TestCase):
             }),
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
-        self.assertEqual(desc1['clientData']['challenge'], 'ThisIsAChallenge')
 
         aut_req = json.loads(self.app.post(
             '/foouser/authenticate',
@@ -229,6 +227,7 @@ class RestApiTest(unittest.TestCase):
             }),
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
+        self.assertEqual(aut_req['challenge'], 'ThisIsAChallenge')
         aut_resp = device.getAssertion('https://example.com', aut_req['appId'],
                                        aut_req['challenge'],
                                        aut_req['registeredKeys'][0]).json
@@ -239,8 +238,6 @@ class RestApiTest(unittest.TestCase):
             }),
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
-        self.assertEqual(desc2['clientData']['challenge'], 'ThisIsAChallenge')
-
         self.assertEqual(desc1['handle'], desc2['handle'])
 
     def test_device_compromised_on_counter_error(self):

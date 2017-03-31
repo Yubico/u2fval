@@ -9,7 +9,7 @@ TESTING = True
 JSONIFY_PRETTYPRINT_REGULAR = True
 
 # Database configuration
-SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite://'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # If True, use memcached for storing registration and authentication requests
