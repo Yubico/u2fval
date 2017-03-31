@@ -156,7 +156,7 @@ class RestApiTest(unittest.TestCase):
                 'properties': {'foo': 'one', 'bar': 'one'}
             }),
             environ_base={'REMOTE_USER': 'fooclient'}
-        ).data.decode('utf-8'))
+        ).data.decode('utf8'))
 
         reg_resp = device.register('https://example.com', reg_req['appId'],
                                    reg_req['registerRequests'][0]).json
@@ -208,7 +208,7 @@ class RestApiTest(unittest.TestCase):
                 'challenge': 'ThisIsAChallenge'
             }),
             environ_base={'REMOTE_USER': 'fooclient'}
-        ).data.decode('utf-8'))
+        ).data.decode('utf8'))
 
         reg_resp = device.register('https://example.com', reg_req['appId'],
                                    reg_req['registerRequests'][0]).json
@@ -267,12 +267,12 @@ class RestApiTest(unittest.TestCase):
         )
 
         self.assertEqual(400, resp.status_code)
-        self.assertEqual(12, json.loads(resp.data.decode('utf-8'))['errorCode'])
+        self.assertEqual(12, json.loads(resp.data.decode('utf8'))['errorCode'])
 
         resp = self.app.get('/foouser/authenticate',
                             environ_base={'REMOTE_USER': 'fooclient'})
         self.assertEqual(400, resp.status_code)
-        self.assertEqual(11, json.loads(resp.data.decode('utf-8'))['errorCode'])
+        self.assertEqual(11, json.loads(resp.data.decode('utf8'))['errorCode'])
 
     def do_register(self, device, properties=None):
         reg_req = json.loads(

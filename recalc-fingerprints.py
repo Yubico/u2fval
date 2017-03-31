@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+# flake8: noqa
 import os
 os.environ['U2FVAL_SETTINGS'] = '/dev/null'  # Avoid loading config file
 from u2fval import app

@@ -54,5 +54,5 @@ if db_conn is not None:
                     'should use SQLALCHEMY_DATABASE_URI instead!')
     app.config['SQLALCHEMY_DATABASE_URI'] = db_conn
 
-import u2fval.view  #noqa
-import u2fval.model  #noqa
+import u2fval.view  # noqa
+import u2fval.model  # noqa

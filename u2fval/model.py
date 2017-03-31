@@ -13,7 +13,6 @@ from cryptography.hazmat.primitives.serialization import Encoding
 from base64 import b64encode, b64decode
 from datetime import datetime
 from uuid import uuid4
-from binascii import b2a_hex
 import json
 
 
@@ -178,7 +177,8 @@ class Device(db.Model):
 class Property(db.Model):
     __tablename__ = 'properties'
 
-    id = db.Column(db.Integer, db.Sequence('property_id_seq'), primary_key=True)
+    id = db.Column(db.Integer, db.Sequence('property_id_seq'),
+                   primary_key=True)
     key = db.Column(db.String(32))
     value = db.Column(db.Text())
     device_id = db.Column(db.Integer, db.ForeignKey('devices.id'))

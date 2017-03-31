@@ -133,7 +133,8 @@ def user(user_id):
     user = get_user(user_id)
     if request.method == 'DELETE':
         if user:
-            app.logger.info('Delete user: "%s/%s"', user.client.name, user.name)
+            app.logger.info('Delete user: "%s/%s"', user.client.name,
+                            user.name)
             db.session.delete(user)
             db.session.commit()
         return ('', 204)
