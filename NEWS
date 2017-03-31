@@ -2,7 +2,7 @@
  ** Major version: This release is NOT backwards compatible! See
     doc/Migrating_From_Older_Versions.adoc for details.
  ** Now implements the U2FVAL API version 2, which is aligned with the FIDO
-    U2F Javascript API 1.1.
+    U2F JavaScript API 1.1.
  ** Now using Flask.
  ** New features:
     - Challenges can now be specified by the caller.
