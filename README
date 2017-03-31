@@ -54,7 +54,7 @@ persisted to the database (if not available this data will be stored in the
 main database). The default configuration uses an in-memory SQLite3 database
 which you probably want to change to something like
 
-    DATABASE_CONFIGURATION = 'sqlite:////etc/yubico/u2fval/u2fval.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////etc/yubico/u2fval/u2fval.db'
 
 Once the configuration file has been configured with database
 credentials, the database can be initialized by running the following command:
@@ -63,11 +63,13 @@ credentials, the database can be initialized by running the following command:
 
 === API Clients ===
 To be able to use the server, a client needs to be created. This is done using
-the *u2fval client create* command. For example:
+the `u2fval client create` command. For example:
 
   u2fval client create example \
-    -a https://example.com/app-identity.json \
-    -f https://example.com
+    https://example.com/app-identity.json \
+    https://example.com
+
+See `u2fval client create --help` for more information.
 
 ==== Authenticating Clients ====
 Each client request needs to be authenticated. This authentication is outside
@@ -77,7 +79,7 @@ be set in the REMOTE_USER server environment variable.
 
 === Deployment ===
 The server can either be run standalone (intended for testing purposes) using
-the *u2fval run* command, or be hosted by any WSGI capable web server, such as
+the `u2fval run` command, or be hosted by any WSGI capable web server, such as
 Apache with mod_wsgi enabled.
 
 === Accessing the Server ===
