@@ -20,11 +20,8 @@ u2fval has the following options:
 *-h, --help*::
     Shows a list of available sub commands and arguments.
 
-*-c, --config CONFIG*::
+*--config CONFIG*::
     Specify an alternate configuration file to use.
-
-*-d, --debug*::
-    Prints debug information to stdout.
 
 == Commands
 u2fval supports multiple commands, each with its own options, in addition
@@ -42,20 +39,26 @@ to the global options:
 *-c, --client CLIENT*::
     Run the server in single client mode using CLIENT.
 
+*-d, --debug*::
+    Run the server in debug mode using HTTP basic authentication with no
+    password to specify client.
+
 === *u2fval client list*
-    Lists all clients
+    Lists all clients.
 
-=== *u2fval client create [OPTIONS] NAME*
-    Creates a new client.
+=== *u2fval client create NAME APPID [FACETS]...*
+    Creates a new client, with the given AppID and valid facets.
     
-*-a, --appId APPID*::
-    Sets the appId.
-
-*-f, --facets FACET [FACET ...]*::
-    Sets the valid facets for the client.
-
 *NAME*::
     The name to give the client.
+
+*APPID*::
+    The AppID of the client.
+
+*FACETS*::
+    One or more valid facets for the client. If no facet is given, APPID is
+    used as the only valid facet. This requires the APPID itself to be a valid
+    web origin.
 
 === *u2fval client show NAME*
     Shows information about a client.
@@ -63,17 +66,19 @@ to the global options:
 *NAME*::
     The name of the client to show.
 
-=== *u2fval client update [OPTIONS] NAME*
+=== *u2fval client update NAME APPID [FACETS]...*
     Updates data for a client.
-
-*-a, --appId APPID*::
-    Sets the appId.
-
-*-f, --facets FACET [FACET ...]*::
-    Sets the valid facets for the client.
 
 *NAME*::
     The name of the client to change.
+
+*APPID*::
+    The AppID to set.
+
+*FACETS*::
+    One or more valid facets for the client. If no facet is given, APPID is
+    used as the only valid facet. This requires the APPID itself to be a valid
+    web origin.
 
 === *u2fval client delete NAME*
     Deletes a client.

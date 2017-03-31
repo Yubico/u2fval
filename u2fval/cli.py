@@ -18,6 +18,8 @@ NAME_PATTERN = re.compile(r'^[a-zA-Z0-9-_.]{3,}$')
 def ensure_valid_name(name):
     if len(name) < 3:
         raise ValueError('Client names must be at least 3 characters')
+    if len(name) > 40:
+        raise ValueError('Client names must be no longer than 40 characters')
     if not NAME_PATTERN.match(name):
         raise ValueError('Client names may only contain the characters a-z, '
                          'A-Z, 0-9, "." (period), "_" (underscore), and "-" '
@@ -52,6 +54,7 @@ def database():
 
 @database.command()
 def init():
+    """Initializes the database by creating the tables."""
     db.create_all()
     click.echo('Database initialized!')
 
@@ -62,7 +65,8 @@ def client():
 
 
 @client.command('list')
-def list_clients():
+def _list():
+    """List the existing clients"""
     for c in Client.query.all():
         click.echo(c.name)
 
@@ -82,6 +86,12 @@ def _get_facets(ctx, appid, facets):
 @click.argument('appId')
 @click.argument('facets', nargs=-1)
 def create(ctx, name, appid, facets):
+    """
+    Create a new client
+
+    If no FACETS are given and the APPID is a valid web origin, the APPID will
+    be used as the only valid facet.
+    """
     ensure_valid_name(name)
     db.session.add(Client(name, appid, _get_facets(ctx, appid, facets)))
     db.session.commit()
@@ -91,6 +101,7 @@ def create(ctx, name, appid, facets):
 @client.command()
 @click.argument('name')
 def show(name):
+    """Display information about a client"""
     c = Client.query.filter(Client.name == name).one()
     click.echo('Client: %s' % c.name)
     click.echo('AppID: %s' % c.app_id)
@@ -106,6 +117,7 @@ def show(name):
 @click.argument('appId')
 @click.argument('facets', nargs=-1)
 def update(ctx, name, appid, facets):
+    """Change the AppID and valid facets for a client"""
     c = Client.query.filter(Client.name == name).one()
     c.app_id = appid
     c.valid_facets = _get_facets(ctx, appid, facets)
@@ -116,6 +128,7 @@ def update(ctx, name, appid, facets):
 @client.command()
 @click.argument('name')
 def delete(name):
+    """Deletes a client"""
     c = Client.query.filter(Client.name == name).one()
     db.session.delete(c)
     db.session.commit()
@@ -142,6 +155,7 @@ def client_from_path(app):
               help='run the debug server in multi-client mode, using '
               'http://CLIENT@... to specify client, with no authentication.')
 def run(interface, port, client, debug):
+    """Runs a U2FVAL server"""
     if debug:
         app.config['DEBUG'] = True
         click.echo("Starting debug server on http://%s:%d..." % (
