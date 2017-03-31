@@ -34,7 +34,8 @@ Some database columns have changed in this version. To migrate existing data
 from an older version of U2FVAL follow these steps:
 
 1. Dump the data from the database using mysqldump, pg_dump or similar for your
-   database. Dump the data only, not the table structure. Verify the data!
+   database. Dump the data only, not the table structure. Verify that the dump
+   contains your data!
 2. Drop the tables from the database, then re-create them using the
    `u2fval db init` command from the new version of u2fval.
 3. Import the data from step 1 into the new tables.
@@ -42,6 +43,10 @@ from an older version of U2FVAL follow these steps:
    your database (located in the source .tar.gz):
 
   $ python recalc-fingerprints.py "sqlite:////path/to/database.db"
+
+You can manually change the columns in-place as an alternative, but you will
+still need to run the `recalc-fingerprints.py` afterwards. It is advised you
+create a backup of all data before attempting this.
 
 Detailed changes:
 - The `name` column in the `clients` table has been resized to 40 characters to
