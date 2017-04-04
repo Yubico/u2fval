@@ -1,0 +1,30 @@
+== Logging
+By default u2fval uses the built-in logging in Flask. This is handy for
+development purposes, but may not be sufficient for production use. We
+recommend deploying u2fval in a WSGI container when used in production and
+configuring logging in a `.wsgi` file. Here is an example of such a file:
+
+[source,python]
+----
+from u2fval import app
+import logging
+from logging.handlers import RotatingFileHandler
+
+# First we remove the default logging handlers.
+for handler in app.logger.handlers:
+    app.logger.removeHandler(handler)
+
+# Now we add our own.
+handler = RotatingFileHandler('/var/log/u2fval.log', maxBytes=100000, backupCount=1)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('[%(levelname)s] %(asctime)s %(name)s: %(message)s', '%Y-%m-%d %I:%M:%S')
+handler.setFormatter(formatter)
+app.logger.addHandler(handler)
+
+application = app
+----
+
+NOTE: You need to ensure that the server has permissions to write to the log
+file, if using one of the Handlers that write to a file. For more information
+on logging see
+link:https://docs.python.org/3/library/logging.html[the Python logging module].

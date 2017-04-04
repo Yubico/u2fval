@@ -98,3 +98,11 @@ request against it as the client you just created:
 Alter the above command to match the username and password you set for the
 client. If successful the output should contain some information about the
 client, such as the application ID and valid facets.
+
+==== Logging
+You can customize logging by modifying the `u2fval.wsgi` file above. See
+link:Logging.adoc[Logging] for more details. Any changes to the file will
+require reloading the Apache configuration:
+
+  # service apache2 reload
+

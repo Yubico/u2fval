@@ -21,14 +21,16 @@ To begin, create a new virtual environment and install u2fval:
 === Configuration
 By default, u2fval will use the file `/etc/yubico/u2fval/u2fval.conf` for
 configuration. This can be overridden by setting the U2FVAL_SETTINGS
-environment variable to point to an alternative location. For a sample of this
-file, you can look at the `u2fval/default_settings.py` that comes with the
-release.
+environment variable to point to an alternative location. For an example of
+this file, you can look at the `conf/u2fval.conf` file in the source release
+tar.gz.
 
 To use custom U2F device metadata, you can place metadata json files in
 `/etc/yubico/u2fval/metadata/` or whatever location you specify in the
-configuration file.
+configuration file. By default, the bundled metadata from python-u2flib-server
+is used.
 
+To configure logging, see link:Logging.adoc[Logging].
 
 === Next steps
 Before you can use the server you need to configure and initialize a database.

@@ -29,12 +29,11 @@ from __future__ import print_function
 from release import setup
 import sys
 import os
-import glob
 
 
 # Make sure the cont/u2fval.conf file exists and is a copy of
-# u2fval/default_settings.py
-if [_ for _ in ['install', 'sdist'] if _ in sys.argv[1:]]:
+# u2fval/default_settings.py when building a release.
+if [_ for _ in ['sdist'] if _ in sys.argv[1:]]:
     print("copying default settings...")
     source = os.path.abspath('u2fval/default_settings.py')
     target = os.path.abspath('conf/u2fval.conf')
@@ -43,18 +42,6 @@ if [_ for _ in ['install', 'sdist'] if _ in sys.argv[1:]]:
             target_f.write(source_f.read())
     os.chmod(target, 0o600)
 
-
-def can_write_etc(path=os.path.join(os.path.sep, 'etc', 'yubico', 'u2fval')):
-    if not os.path.isdir(path):
-        return can_write_etc(os.path.dirname(path))
-    return os.access(path, os.W_OK)
-
-
-# Only write configuration files if we have the correct permissions.
-data_files = [
-    ('/etc/yubico/u2fval', ['conf/u2fval.conf', 'conf/logging.conf']),
-    ('/etc/yubico/u2fval/metadata', glob.glob('conf/metadata/*.json'))
-] if can_write_etc() else []
 
 setup(
     name='u2fval',
@@ -70,7 +57,6 @@ setup(
             'u2fval=u2fval.cli:main'
         ]
     },
-    data_files=data_files,
     install_requires=[
         'python-u2flib-server >= 5, <6',
         'flask',

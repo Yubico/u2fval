@@ -55,3 +55,10 @@ Detailed changes:
   to be in line with other name columns.
 - The `fingerprint` column in the `certificates` table has been resized to 128
   characters to accommodate larger fingerprints.
+
+==== Logging changes
+The app now uses Flask's built-in logging which is based on the logging module
+included in Python. The recommended way to configure custom logging for
+production is by creating a `.wsgi` file to serve the app in a wsgi container,
+and configuring the logging in that file. See link:Logging.adoc[Logging] for
+more details.
