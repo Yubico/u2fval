@@ -13,6 +13,7 @@ from .jsobjects import (RegisterRequestData, RegisterResponseData,
                         SignRequestData, SignResponseData)
 from datetime import datetime
 from hashlib import sha256
+from six.moves.urllib.parse import unquote
 import json
 import os
 
@@ -217,19 +218,16 @@ def _register_response(user_id, response_data):
 @app.route('/<user_id>/register', methods=['GET', 'POST'])
 def register(user_id):
     if request.method == 'POST':
-        data = request.get_json(force=True)
-    else:
-        data = {}
-
-    if 'registerResponse' in data:
         # Response
         return jsonify(_register_response(
-            user_id, RegisterResponseData.wrap(data)))
+            user_id, RegisterResponseData.wrap(request.get_json(force=True))))
     else:
         # Request
-        challenge = websafe_decode(data['challenge']) \
-            if 'challenge' in data else os.urandom(32)
-        properties = data.get('properties', {})
+        challenge = request.args.get('challenge', type=websafe_decode)
+        if challenge is None:
+            challenge = os.urandom(32)
+        properties = request.args.get('properties', {},
+                                      lambda x: json.loads(unquote(x)))
 
         return jsonify(_register_request(user_id, challenge, properties))
 
@@ -307,18 +305,16 @@ def _sign_response(user_id, response_data):
 @app.route('/<user_id>/authenticate', methods=['GET', 'POST'])
 def authenticate(user_id):
     if request.method == 'POST':
-        data = request.get_json(force=True)
-    else:
-        data = {}
-
-    if 'signResponse' in data:
         # Response
-        return jsonify(_sign_response(user_id, SignResponseData.wrap(data)))
+        return jsonify(_sign_response(
+            user_id, SignResponseData.wrap(request.get_json(force=True))))
     else:
         # Request
-        challenge = websafe_decode(data['challenge']) \
-            if 'challenge' in data else os.urandom(32)
-        properties = data.get('properties', {})
+        challenge = request.args.get('challenge', type=websafe_decode)
+        if challenge is None:
+            challenge = os.urandom(32)
+        properties = request.args.get('properties', {},
+                                      lambda x: json.loads(unquote(x)))
 
         return jsonify(_sign_request(user_id, challenge, properties))
 

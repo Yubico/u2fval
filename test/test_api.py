@@ -1,6 +1,7 @@
 from u2fval import app, exc
 from u2fval.model import db, Client
 from .soft_u2f_v2 import SoftU2FDevice
+from six.moves.urllib.parse import quote
 import unittest
 import json
 
@@ -147,11 +148,9 @@ class RestApiTest(unittest.TestCase):
 
     def test_set_properties_during_register(self):
         device = SoftU2FDevice()
-        reg_req = json.loads(self.app.post(
-            '/foouser/register',
-            data=json.dumps({
-                'properties': {'foo': 'one', 'bar': 'one'}
-            }),
+        reg_req = json.loads(self.app.get(
+            '/foouser/register?properties=' + quote(json.dumps(
+                {'foo': 'one', 'bar': 'one'})),
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
 
@@ -173,11 +172,9 @@ class RestApiTest(unittest.TestCase):
         device = SoftU2FDevice()
         self.do_register(device, {'foo': 'one', 'bar': 'one', 'baz': 'one'})
 
-        aut_req = json.loads(self.app.post(
-            '/foouser/authenticate',
-            data=json.dumps({
-                'properties': {'bar': 'two', 'boo': 'two'}
-            }),
+        aut_req = json.loads(self.app.get(
+            '/foouser/authenticate?properties=' + quote(json.dumps(
+                {'bar': 'two', 'boo': 'two'})),
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
         aut_resp = device.getAssertion('https://example.com', aut_req['appId'],
@@ -197,13 +194,10 @@ class RestApiTest(unittest.TestCase):
             'baz': 'three',
         }, desc['properties'])
 
-    def test_register_and_sign_using_post(self):
+    def test_register_and_sign_with_custom_challenge(self):
         device = SoftU2FDevice()
-        reg_req = json.loads(self.app.post(
-            '/foouser/register',
-            data=json.dumps({
-                'challenge': 'ThisIsAChallenge'
-            }),
+        reg_req = json.loads(self.app.get(
+            '/foouser/register?challenge=ThisIsAChallenge',
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
 
@@ -220,11 +214,8 @@ class RestApiTest(unittest.TestCase):
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
 
-        aut_req = json.loads(self.app.post(
-            '/foouser/authenticate',
-            data=json.dumps({
-                'challenge': 'ThisIsAChallenge'
-            }),
+        aut_req = json.loads(self.app.get(
+            '/foouser/authenticate?challenge=ThisIsAChallenge',
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
         self.assertEqual(aut_req['challenge'], 'ThisIsAChallenge')
