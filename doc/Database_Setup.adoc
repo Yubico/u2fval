@@ -36,6 +36,11 @@ Edit the SQLALCHEMY_DATABASE_URI setting in the
 
   SQLALCHEMY_DATABASE_URI = 'postgresql://u2fval:password@localhost/u2fval'
 
+NOTE: There are many other settings related to the database that you can set in
+this file. For a reference, see the
+link:http://flask-sqlalchemy.pocoo.org/2.1/config/[Flask-SQLAlchemy
+configuration] documentation.
+
 Save and close the file, and initialize the database for use with u2fval:
 
   (venv) $ u2fval db init
