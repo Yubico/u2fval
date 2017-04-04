@@ -232,7 +232,7 @@ def register(user_id):
         return jsonify(_register_request(user_id, challenge, properties))
 
 
-def _sign_request(user_id, challenge, properties):
+def _sign_request(user_id, challenge, handles, properties):
     client = get_client()
     user = get_user(user_id)
     if user is None or len(user.devices) == 0:
@@ -243,7 +243,14 @@ def _sign_request(user_id, challenge, properties):
     descriptors = []
     handle_map = {}
 
-    for handle, dev in user.devices.items():
+    if not handles:
+        handles = user.devices.keys()
+
+    for handle in handles:
+        try:
+            dev = user.devices[handle]
+        except KeyError:
+            raise exc.BadInputException('Invalid device handle: ' + handle)
         if not dev.compromised:
             descriptor = dev.get_descriptor(get_metadata(dev))
             descriptors.append(descriptor)
@@ -315,8 +322,9 @@ def authenticate(user_id):
             challenge = os.urandom(32)
         properties = request.args.get('properties', {},
                                       lambda x: json.loads(unquote(x)))
+        handles = request.args.getlist('handle')
 
-        return jsonify(_sign_request(user_id, challenge, properties))
+        return jsonify(_sign_request(user_id, challenge, handles, properties))
 
 
 @app.route('/<user_id>/<handle>', methods=['GET', 'POST', 'DELETE'])

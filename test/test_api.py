@@ -22,13 +22,15 @@ class RestApiTest(unittest.TestCase):
         self.app = app.test_client()
 
     def test_call_without_client(self):
-        err = json.loads(self.app.get('/').data.decode('utf8'))
+        resp = self.app.get('/')
+        self.assertEqual(resp.status_code, 400)
+        err = json.loads(resp.data.decode('utf8'))
         self.assertEqual(err['errorCode'], exc.BadInputException.code)
 
     def test_call_with_invalid_client(self):
-        err = json.loads(
-            self.app.get('/', environ_base={'REMOTE_USER': 'invalid'}
-                         ).data.decode('utf8'))
+        resp = self.app.get('/', environ_base={'REMOTE_USER': 'invalid'})
+        self.assertEqual(resp.status_code, 404)
+        err = json.loads(resp.data.decode('utf8'))
         self.assertEqual(err['errorCode'], exc.BadInputException.code)
 
     def test_get_trusted_facets(self):
@@ -44,10 +46,10 @@ class RestApiTest(unittest.TestCase):
         self.assertEqual(resp, [])
 
     def test_begin_auth_without_devices(self):
-        err = json.loads(
-            self.app.get('/foouser/authenticate',
-                         environ_base={'REMOTE_USER': 'fooclient'}
-                         ).data.decode('utf8'))
+        resp = self.app.get('/foouser/authenticate',
+                            environ_base={'REMOTE_USER': 'fooclient'})
+        self.assertEqual(resp.status_code, 400)
+        err = json.loads(resp.data.decode('utf8'))
         self.assertEqual(err['errorCode'], exc.NoEligibleDevicesException.code)
 
     def test_register(self):
@@ -230,6 +232,43 @@ class RestApiTest(unittest.TestCase):
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
         self.assertEqual(desc1['handle'], desc2['handle'])
+
+    def test_authenticate_with_handle_filtering(self):
+        dev = SoftU2FDevice()
+        h1 = self.do_register(dev)['handle']
+        h2 = self.do_register(dev)['handle']
+        self.do_register(dev)['handle']
+
+        aut_req = json.loads(
+            self.app.get('/foouser/authenticate',
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        self.assertEqual(len(aut_req['registeredKeys']), 3)
+        self.assertEqual(len(aut_req['descriptors']), 3)
+
+        aut_req = json.loads(
+            self.app.get('/foouser/authenticate?handle=' + h1,
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+        self.assertEqual(len(aut_req['registeredKeys']), 1)
+        self.assertEqual(aut_req['descriptors'][0]['handle'], h1)
+
+        aut_req = json.loads(
+            self.app.get(
+                '/foouser/authenticate?handle=' + h1 + '&handle=' + h2,
+                environ_base={'REMOTE_USER': 'fooclient'}
+            ).data.decode('utf8'))
+        self.assertEqual(len(aut_req['registeredKeys']), 2)
+        self.assertIn(aut_req['descriptors'][0]['handle'], [h1, h2])
+        self.assertIn(aut_req['descriptors'][1]['handle'], [h1, h2])
+
+    def test_authenticate_with_invalid_handle(self):
+        dev = SoftU2FDevice()
+        self.do_register(dev)
+
+        resp = self.app.get('/foouser/authenticate?handle=foobar',
+                            environ_base={'REMOTE_USER': 'fooclient'})
+        self.assertEqual(resp.status_code, 400)
 
     def test_device_compromised_on_counter_error(self):
         dev = SoftU2FDevice()
