@@ -1,7 +1,10 @@
 from u2fval import app, exc
 from u2fval.model import db, Client
-from .soft_u2f_v2 import SoftU2FDevice
+from .soft_u2f_v2 import SoftU2FDevice, CERT
 from six.moves.urllib.parse import quote
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import Encoding
 import unittest
 import json
 
@@ -46,7 +49,7 @@ class RestApiTest(unittest.TestCase):
         self.assertEqual(resp, [])
 
     def test_begin_auth_without_devices(self):
-        resp = self.app.get('/foouser/authenticate',
+        resp = self.app.get('/foouser/sign',
                             environ_base={'REMOTE_USER': 'fooclient'})
         self.assertEqual(resp.status_code, 400)
         err = json.loads(resp.data.decode('utf8'))
@@ -56,10 +59,10 @@ class RestApiTest(unittest.TestCase):
         device = SoftU2FDevice()
         self.do_register(device, {'foo': 'bar'})
 
-    def test_authenticate(self):
+    def test_sign(self):
         device = SoftU2FDevice()
         self.do_register(device, {'foo': 'bar', 'baz': 'one'})
-        descriptor = self.do_authenticate(device, {'baz': 'two'})
+        descriptor = self.do_sign(device, {'baz': 'two'})
         self.assertEqual(descriptor['properties'],
                          {'foo': 'bar', 'baz': 'two'})
 
@@ -108,6 +111,22 @@ class RestApiTest(unittest.TestCase):
             self.app.get('/foouser', environ_base={'REMOTE_USER': 'fooclient'}
                          ).data.decode('utf8'))
         self.assertEqual(len(resp), 3)
+
+    def test_get_device_descriptor_and_cert(self):
+        desc = self.do_register(SoftU2FDevice())
+
+        desc2 = json.loads(
+            self.app.get('/foouser/' + desc['handle'],
+                         environ_base={'REMOTE_USER': 'fooclient'}
+                         ).data.decode('utf8'))
+
+        self.assertEqual(desc, desc2)
+
+        cert = x509.load_pem_x509_certificate(self.app.get(
+            '/foouser/' + desc['handle'] + '/certificate',
+            environ_base={'REMOTE_USER': 'fooclient'}
+        ).data, default_backend())
+        self.assertEqual(CERT, cert.public_bytes(Encoding.DER))
 
     def test_delete_user(self):
         self.do_register(SoftU2FDevice())
@@ -175,7 +194,7 @@ class RestApiTest(unittest.TestCase):
         self.do_register(device, {'foo': 'one', 'bar': 'one', 'baz': 'one'})
 
         aut_req = json.loads(self.app.get(
-            '/foouser/authenticate?properties=' + quote(json.dumps(
+            '/foouser/sign?properties=' + quote(json.dumps(
                 {'bar': 'two', 'boo': 'two'})),
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
@@ -183,7 +202,7 @@ class RestApiTest(unittest.TestCase):
                                        aut_req['challenge'],
                                        aut_req['registeredKeys'][0]).json
         desc = json.loads(self.app.post(
-            '/foouser/authenticate',
+            '/foouser/sign',
             data=json.dumps({
                 'signResponse': aut_resp,
                 'properties': {'baz': 'three', 'boo': None}
@@ -217,7 +236,7 @@ class RestApiTest(unittest.TestCase):
         ).data.decode('utf8'))
 
         aut_req = json.loads(self.app.get(
-            '/foouser/authenticate?challenge=ThisIsAChallenge',
+            '/foouser/sign?challenge=ThisIsAChallenge',
             environ_base={'REMOTE_USER': 'fooclient'}
         ).data.decode('utf8'))
         self.assertEqual(aut_req['challenge'], 'ThisIsAChallenge')
@@ -225,7 +244,7 @@ class RestApiTest(unittest.TestCase):
                                        aut_req['challenge'],
                                        aut_req['registeredKeys'][0]).json
         desc2 = json.loads(self.app.post(
-            '/foouser/authenticate',
+            '/foouser/sign',
             data=json.dumps({
                 'signResponse': aut_resp
             }),
@@ -233,21 +252,21 @@ class RestApiTest(unittest.TestCase):
         ).data.decode('utf8'))
         self.assertEqual(desc1['handle'], desc2['handle'])
 
-    def test_authenticate_with_handle_filtering(self):
+    def test_sign_with_handle_filtering(self):
         dev = SoftU2FDevice()
         h1 = self.do_register(dev)['handle']
         h2 = self.do_register(dev)['handle']
         self.do_register(dev)['handle']
 
         aut_req = json.loads(
-            self.app.get('/foouser/authenticate',
+            self.app.get('/foouser/sign',
                          environ_base={'REMOTE_USER': 'fooclient'}
                          ).data.decode('utf8'))
         self.assertEqual(len(aut_req['registeredKeys']), 3)
         self.assertEqual(len(aut_req['descriptors']), 3)
 
         aut_req = json.loads(
-            self.app.get('/foouser/authenticate?handle=' + h1,
+            self.app.get('/foouser/sign?handle=' + h1,
                          environ_base={'REMOTE_USER': 'fooclient'}
                          ).data.decode('utf8'))
         self.assertEqual(len(aut_req['registeredKeys']), 1)
@@ -255,38 +274,38 @@ class RestApiTest(unittest.TestCase):
 
         aut_req = json.loads(
             self.app.get(
-                '/foouser/authenticate?handle=' + h1 + '&handle=' + h2,
+                '/foouser/sign?handle=' + h1 + '&handle=' + h2,
                 environ_base={'REMOTE_USER': 'fooclient'}
             ).data.decode('utf8'))
         self.assertEqual(len(aut_req['registeredKeys']), 2)
         self.assertIn(aut_req['descriptors'][0]['handle'], [h1, h2])
         self.assertIn(aut_req['descriptors'][1]['handle'], [h1, h2])
 
-    def test_authenticate_with_invalid_handle(self):
+    def test_sign_with_invalid_handle(self):
         dev = SoftU2FDevice()
         self.do_register(dev)
 
-        resp = self.app.get('/foouser/authenticate?handle=foobar',
+        resp = self.app.get('/foouser/sign?handle=foobar',
                             environ_base={'REMOTE_USER': 'fooclient'})
         self.assertEqual(resp.status_code, 400)
 
     def test_device_compromised_on_counter_error(self):
         dev = SoftU2FDevice()
         self.do_register(dev)
-        self.do_authenticate(dev)
-        self.do_authenticate(dev)
-        self.do_authenticate(dev)
+        self.do_sign(dev)
+        self.do_sign(dev)
+        self.do_sign(dev)
         dev.counter = 1
 
         aut_req = json.loads(
-            self.app.get('/foouser/authenticate',
+            self.app.get('/foouser/sign',
                          environ_base={'REMOTE_USER': 'fooclient'}
                          ).data.decode('utf8'))
         aut_resp = dev.getAssertion('https://example.com', aut_req['appId'],
                                     aut_req['challenge'],
                                     aut_req['registeredKeys'][0]).json
         resp = self.app.post(
-            '/foouser/authenticate',
+            '/foouser/sign',
             data=json.dumps({
                 'signResponse': aut_resp
             }),
@@ -296,7 +315,7 @@ class RestApiTest(unittest.TestCase):
         self.assertEqual(400, resp.status_code)
         self.assertEqual(12, json.loads(resp.data.decode('utf8'))['errorCode'])
 
-        resp = self.app.get('/foouser/authenticate',
+        resp = self.app.get('/foouser/sign',
                             environ_base={'REMOTE_USER': 'fooclient'})
         self.assertEqual(400, resp.status_code)
         self.assertEqual(11, json.loads(resp.data.decode('utf8'))['errorCode'])
@@ -325,9 +344,9 @@ class RestApiTest(unittest.TestCase):
         self.assertEqual(descriptor['properties'], properties)
         return descriptor
 
-    def do_authenticate(self, device, properties=None):
+    def do_sign(self, device, properties=None):
         aut_req = json.loads(
-            self.app.get('/foouser/authenticate',
+            self.app.get('/foouser/sign',
                          environ_base={'REMOTE_USER': 'fooclient'}
                          ).data.decode('utf8'))
         aut_resp = device.getAssertion('https://example.com', aut_req['appId'],
@@ -336,7 +355,7 @@ class RestApiTest(unittest.TestCase):
         if properties is None:
             properties = {}
         return json.loads(self.app.post(
-            '/foouser/authenticate',
+            '/foouser/sign',
             data=json.dumps({
                 'signResponse': aut_resp,
                 'properties': properties

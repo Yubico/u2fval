@@ -309,8 +309,8 @@ def _sign_response(user_id, response_data):
                                              dev.get_descriptor())
 
 
-@app.route('/<user_id>/authenticate', methods=['GET', 'POST'])
-def authenticate(user_id):
+@app.route('/<user_id>/sign', methods=['GET', 'POST'])
+def sign(user_id):
     if request.method == 'POST':
         # Response
         return jsonify(_sign_response(
@@ -332,7 +332,11 @@ def device(user_id, handle):
     user = get_user(user_id)
     if user is None:
         raise exc.NotFoundException('Device not found')
-    dev = user.devices[handle]
+    try:
+        dev = user.devices[handle]
+    except KeyError:
+        raise exc.BadInputException('Invalid device handle: ' + handle)
+
     if request.method == 'DELETE':
         if dev is not None:
             app.logger.info('Delete handle: %s/%s/%s', user.client.name,
@@ -356,5 +360,8 @@ def device_certificate(user_id, handle):
     user = get_user(user_id)
     if user is None:
         raise exc.NotFoundException('Device not found')
-    dev = user.devices[handle]
+    try:
+        dev = user.devices[handle]
+    except KeyError:
+        raise exc.BadInputException('Invalid device handle: ' + handle)
     return dev.certificate.get_pem()
