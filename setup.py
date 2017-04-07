@@ -37,6 +37,9 @@ if [_ for _ in ['sdist'] if _ in sys.argv[1:]]:
     print("copying default settings...")
     source = os.path.abspath('u2fval/default_settings.py')
     target = os.path.abspath('conf/u2fval.conf')
+    target_dir = os.path.dirname(target)
+    if not os.path.isdir(target_dir):
+        os.mkdir(target_dir)
     with open(target, 'w') as target_f:
         with open(source, 'r') as source_f:
             target_f.write(source_f.read())
