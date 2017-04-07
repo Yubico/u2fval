@@ -28,7 +28,7 @@
 from flask import Flask
 import os
 
-__version__ = "2.0.0-dev0"
+__version__ = "2.0.0"
 
 
 app = Flask(__name__)
