@@ -16,6 +16,7 @@ from hashlib import sha256
 from six.moves.urllib.parse import unquote
 import json
 import os
+import re
 
 
 if app.config['USE_MEMCACHED']:
@@ -327,15 +328,19 @@ def sign(user_id):
         return jsonify(_sign_request(user_id, challenge, handles, properties))
 
 
+_HANDLE_PATTERN = re.compile(r'^[a-f0-9]{32}$')
+
+
 @app.route('/<user_id>/<handle>', methods=['GET', 'POST', 'DELETE'])
 def device(user_id, handle):
+    if _HANDLE_PATTERN.match(handle) is None:
+        raise exc.BadInputException('Invalid device handle: ' + handle)
+
     user = get_user(user_id)
-    if user is None:
-        raise exc.NotFoundException('Device not found')
     try:
         dev = user.devices[handle]
-    except KeyError:
-        raise exc.BadInputException('Invalid device handle: ' + handle)
+    except (AttributeError, KeyError):
+        raise exc.NotFoundException('Device not found')
 
     if request.method == 'DELETE':
         if dev is not None:

@@ -128,6 +128,23 @@ class RestApiTest(unittest.TestCase):
         ).data, default_backend())
         self.assertEqual(CERT, cert.public_bytes(Encoding.DER))
 
+    def test_get_invalid_device(self):
+        resp = self.app.get('/foouser/' + ('ab' * 16),
+                            environ_base={'REMOTE_USER': 'fooclient'}
+                            )
+        self.assertEqual(resp.status_code, 404)
+
+        self.do_register(SoftU2FDevice())
+        resp = self.app.get('/foouser/' + ('ab' * 16),
+                            environ_base={'REMOTE_USER': 'fooclient'}
+                            )
+        self.assertEqual(resp.status_code, 404)
+
+        resp = self.app.get('/foouser/InvalidHandle',
+                            environ_base={'REMOTE_USER': 'fooclient'}
+                            )
+        self.assertEqual(resp.status_code, 400)
+
     def test_delete_user(self):
         self.do_register(SoftU2FDevice())
         self.do_register(SoftU2FDevice())
