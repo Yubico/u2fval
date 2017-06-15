@@ -77,7 +77,7 @@ class custom_sdist(sdist):
 
 
 class build_man(Command):
-    description = "create man pages from asciidoc source"
+    description = 'create man pages from asciidoc source'
     user_options = []
     boolean_options = []
 
@@ -92,20 +92,20 @@ class build_man(Command):
 
     def run(self):
         if os.getcwd() != self.cwd:
-            raise DistutilsSetupError("Must be in package root!")
+            raise DistutilsSetupError('Must be in package root!')
 
         for fname in glob(os.path.join('man', '*.adoc')):
-            self.announce("Converting: " + fname, log.INFO)
+            self.announce('Converting: ' + fname, log.INFO)
             self.execute(os.system,
                          ('a2x -d manpage -f manpage "%s"' % fname,))
 
 
 class release(Command):
-    description = "create and release a new version"
+    description = 'create and release a new version'
     user_options = [
-        ('keyid', None, "GPG key to sign with"),
-        ('skip-tests', None, "skip running the tests"),
-        ('pypi', None, "publish to pypi"),
+        ('keyid', None, 'GPG key to sign with'),
+        ('skip-tests', None, 'skip running the tests'),
+        ('pypi', None, 'publish to pypi'),
     ]
     boolean_options = ['skip-tests', 'pypi']
 
@@ -126,7 +126,7 @@ class release(Command):
         now = date.today().strftime('%Y-%m-%d')
         if not re.search(r'Version %s \(released %s\)' % (self.version, now),
                          line):
-            raise DistutilsSetupError("Incorrect date/version in NEWS!")
+            raise DistutilsSetupError('Incorrect date/version in NEWS!')
 
     def _verify_tag(self):
         if os.system('git tag | grep -q "^%s\$"' % self.fullname) == 0:
@@ -135,7 +135,7 @@ class release(Command):
 
     def _verify_not_dirty(self):
         if os.system('git diff --shortstat | grep -q "."') == 0:
-            raise DistutilsSetupError("Git has uncommitted changes!")
+            raise DistutilsSetupError('Git has uncommitted changes!')
 
     def _sign(self):
         if os.path.isfile('dist/%s.tar.gz.asc' % self.fullname):
@@ -150,7 +150,7 @@ class release(Command):
         self.execute(os.system, ('gpg ' + (' '.join(sign_opts)),))
 
         if os.system('gpg --verify dist/%s.tar.gz.sig' % self.fullname) != 0:
-            raise DistutilsSetupError("Error verifying signature!")
+            raise DistutilsSetupError('Error verifying signature!')
 
     def _tag(self):
         tag_opts = ['-s', '-m ' + self.fullname, self.fullname]
@@ -160,7 +160,7 @@ class release(Command):
 
     def run(self):
         if os.getcwd() != self.cwd:
-            raise DistutilsSetupError("Must be in package root!")
+            raise DistutilsSetupError('Must be in package root!')
 
         self._verify_version()
         self._verify_tag()
@@ -176,7 +176,7 @@ class release(Command):
                 self.run_command('test')
             except SystemExit as e:
                 if e.code != 0:
-                    raise DistutilsSetupError("There were test failures!")
+                    raise DistutilsSetupError('There were test failures!')
 
         if self.pypi:
             cmd_obj = self.distribution.get_command_obj('upload')
@@ -189,6 +189,6 @@ class release(Command):
         self._tag()
 
         self.announce("Release complete! Don't forget to:", log.INFO)
-        self.announce("")
-        self.announce("    git push && git push --tags", log.INFO)
-        self.announce("")
+        self.announce('')
+        self.announce('    git push && git push --tags', log.INFO)
+        self.announce('')

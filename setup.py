@@ -34,7 +34,7 @@ import os
 # Make sure the cont/u2fval.conf file exists and is a copy of
 # u2fval/default_settings.py when building a release.
 if [_ for _ in ['sdist'] if _ in sys.argv[1:]]:
-    print("copying default settings...")
+    print('copying default settings...')
     source = os.path.abspath('u2fval/default_settings.py')
     target = os.path.abspath('conf/u2fval.conf')
     target_dir = os.path.dirname(target)

@@ -77,7 +77,7 @@ def _get_facets(ctx, appid, facets):
     url = urlparse(appid)
     if appid == '%s://%s' % (url.scheme, url.netloc):
         return [appid]
-    ctx.fail("At least one facet is required unless appId is an origin")
+    ctx.fail('At least one facet is required unless appId is an origin')
 
 
 @client.command()
@@ -158,7 +158,7 @@ def run(interface, port, client, debug):
     """Runs a U2FVAL server"""
     if debug:
         app.config['DEBUG'] = True
-        click.echo("Starting debug server on http://%s:%d..." % (
+        click.echo('Starting debug server on http://%s:%d...' % (
             interface, port))
         return app.run(interface, port, debug)
 
@@ -169,13 +169,13 @@ def run(interface, port, client, debug):
         click.echo("Running in single-client mode for client: '%s'" % client)
         extra_environ['REMOTE_USER'] = client
     else:
-        click.echo("Running in multi-client mode with client specified in the "
-                   "path")
+        click.echo('Running in multi-client mode with client specified in the '
+                   'path')
         application = client_from_path(app)
 
     httpd = make_server(interface, port, application)
     httpd.base_environ.update(extra_environ)
-    click.echo("Starting server on http://%s:%d..." % (interface, port))
+    click.echo('Starting server on http://%s:%d...' % (interface, port))
     return httpd.serve_forever()
 
 

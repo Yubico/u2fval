@@ -84,8 +84,8 @@ class SoftU2FDevice(object):
         if not isinstance(request, RegisterRequest):
             request = RegisterRequest(request)
 
-        if request.version != "U2F_V2":
-            raise ValueError("Unsupported U2F version: %s" % request.version)
+        if request.version != 'U2F_V2':
+            raise ValueError('Unsupported U2F version: %s' % request.version)
 
         # Client data
         client_data = ClientData(
@@ -137,11 +137,11 @@ class SoftU2FDevice(object):
 
         key = RegisteredKey.wrap(key)
 
-        if key.version != "U2F_V2":
-            raise ValueError("Unsupported U2F version: %s" % key.version)
+        if key.version != 'U2F_V2':
+            raise ValueError('Unsupported U2F version: %s' % key.version)
 
         if key.keyHandle not in self.keys:
-            raise ValueError("Unknown key handle!")
+            raise ValueError('Unknown key handle!')
 
         # Client data
         client_data = ClientData(
