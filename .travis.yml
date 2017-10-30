@@ -24,7 +24,7 @@ addons:
       - swig
 
 install:
-  - pip install --disable-pip-version-check --upgrade pip
+  - pip install --disable-pip-version-check --upgrade pip setuptools
   - pip install -r dev-requirements.txt
   - pip install -e .
 
