@@ -24,14 +24,14 @@ own domain name and `u2fval_user` by the user that you had setup with `u2fval`
 previously.
 
   server {
-    listen 443;
-    # ssl certificate configuration would go here
-            server_name  yourauthserver.com;
-            location /u2f {
-                    uwsgi_pass 127.0.0.1:8000;
-                    include uwsgi_params;
-                    uwsgi_param REMOTE_USER u2fval_user;
-            }
+          listen 443;
+          # ssl certificate configuration would go here
+          server_name  yourauthserver.com;
+          location /u2f {
+                  uwsgi_pass 127.0.0.1:8000;
+                  include uwsgi_params;
+                  uwsgi_param REMOTE_USER u2fval_user;
+          }
   }
 
 You now can access your u2fval server at https://yourauthserver.com/u2f
