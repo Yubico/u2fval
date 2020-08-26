@@ -1,4 +1,7 @@
 == Yubico U2F Validation Server ==
+
+NOTE: This project is no longer actively maintained.
+
 The Yubico U2F Validation Server (u2fval) is a server that provides U2F
 registration and authentication through a simple JSON based REST API.
 
